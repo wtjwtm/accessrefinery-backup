@@ -49,6 +49,14 @@ AM_ARCHIVE=archive_results_new/accessrefinery_bdd_reducer_AM_20rs/RW/summary.txt
 AI_ARCHIVE=archive_results_new/accessrefinery_bdd_reducer_AI_20rs/RW/summary.txt
 OUT=result/RW/summary.txt
 
+# This measurement needs the real-world corpus itself, which is not public, for
+# commercial reasons, so data/RW/ ships empty and the script cannot run as is.
+if [ ! -d data/RW/ ]; then
+    echo "data/RW/ is missing: the real-world corpus is not public, for commercial reasons." >&2
+    echo "Restore the 506 labeled policies there to run this measurement." >&2
+    exit 1
+fi
+
 PY=$(command -v python3 || command -v python || true)
 if [ -z "$PY" ]; then
     echo "python3 not found; it is needed to write the label-free priming corpus" >&2

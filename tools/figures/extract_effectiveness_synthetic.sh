@@ -1,5 +1,6 @@
 #!/bin/bash
-# Generate plot data for Experiment-Effectiveness-Synthetic-K2.dat and K3.dat
+# Generate plot data for Experiment-Effectiveness-Synthetic-K2.dat, K3.dat and K4.dat
+# (5-Keys, 6-Keys and 7-Keys respectively)
 
 # Create output directory if it doesn't exist
 mkdir -p paper_figures/archive_data/
@@ -27,4 +28,15 @@ if [ -f "$INPUT_K3" ]; then
     echo "Extracted $OUTPUT_K3 from $INPUT_K3"
 else
     echo "Warning: File $INPUT_K3 not found"
+fi
+
+# Process K4 data (Scalability_07Keys)
+INPUT_K4="results/accessrefinery_bdd_reducer_10rs/Scalability_07Keys/summary.txt"
+OUTPUT_K4="paper_figures/archive_data/Experiment-Effectiveness-Synthetic-K4.dat"
+
+if [ -f "$INPUT_K4" ]; then
+    awk 'NR>1 {print $3 "\t" $2}' "$INPUT_K4" > "$OUTPUT_K4"
+    echo "Extracted $OUTPUT_K4 from $INPUT_K4"
+else
+    echo "Warning: File $INPUT_K4 not found"
 fi

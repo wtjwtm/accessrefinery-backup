@@ -1,4 +1,4 @@
-set terminal pdfcairo font "Times New Roman,11.77" linewidth 1 rounded fontscale 1.35 size 33.8cm, 9cm
+set terminal pdfcairo font "Times New Roman,11.77" linewidth 1 rounded fontscale 1.35 size 33.8cm, 9.5cm
 
 # Set background and axes styles
 set style line 80 lt rgb "#808080"
@@ -11,13 +11,17 @@ set border 3 back linestyle 80
 set xtics nomirror
 set ytics nomirror
 
-# The same stage colours as Optimization-Overview-Bars-3Stage. This figure has a
-# use for two of them: the green solid fill that figure's Incremental MCP bars
-# use, for the first bar of a group, and the hatched blue its Pruning Reducer
-# bars use, for the second. Its Original colour and its real-world reference line
-# have no series in this figure and are not defined.
-set style line 2 lt rgb "#2b8cbe" lw 2
-set style line 3 lt rgb "#00A000" lw 2
+# The two bar styles of the outermost bars of Optimization-Overview-Bars-3Stage,
+# taken over as they are: that figure's first bar - its dark blue #253494, pattern
+# 1, border - on the miner's bar here, and that figure's last bar - its green
+# #00A000, solid - on the reducer's bar. So a pair here is the 3-Stage figure's
+# first and last bar with the middle one taken out, not a pair of one pipeline's
+# stages: the two bars are the miner's share and the reducer's share of their own
+# window, which the labels name, so the colour carries no stage. That figure's
+# medium blue, its real-world reference line and the fill styles it uses for its
+# middle bar have no series in this figure and are not defined.
+set style line 2 lt rgb "#00A000" lw 2
+set style line 3 lt rgb "#253494" lw 2
 
 set xtics font ", 11"
 set ytics font ", 11"
@@ -27,42 +31,48 @@ set ytics font ", 11"
 set ytics (0, 20, 40, 60, 80, 100)
 set boxwidth 0.22
 
-set bmargin screen 0.30
-set tmargin at screen 0.90
+set bmargin screen 0.241263
+set tmargin at screen 0.705895
 set rmargin screen 0.86
 
 # Output settings
 set output 'results_new/Optimization-Overview-Bars-Percentage.pdf'
 
-# Same canvas as the 3-Stage figure, but three panels instead of four, and the
-# panels are the wider for it: 6.75 cm against that figure's 6.17 cm, with 47 mm
-# of white between them instead of 17 mm. The height is the shared 4.41 cm, so
-# the two figures still print at one width and their axes still start on the
-# same line down the left; only the three columns here do not line up with the
-# four there. The spacing is what buys the width, the outer margins being the
-# ones every figure of this family uses.
-set multiplot layout 1,3 margins 0.08, 0.96, 0.31, 0.80 spacing 0.14
+# The RQ3 canvas and the RQ3 layout: 33.8cm x 9.5cm with margins 0.11355, 0.88645,
+# 0.241263, 0.705895 and spacing 0.05355, which is what makes a panel 7.501 x
+# 4.416 cm here exactly as it is there, with 1.81 cm of white between neighbours.
+# Every label below is at its RQ3 screen position for that reason, the x title
+# with them and so also keeping the 0.45 cm it leaves below itself to the canvas'
+# bottom edge; only the manual legend, which RQ3 has no counterpart of, is placed
+# as it was, shifted left by the 0.02 the block's centre moved and its y the 9 cm
+# value scaled by 0.9, so that the taller canvas of that figure does not move it -
+# it sits 1.77 cm below the canvas' top edge, which the half centimetre since
+# taken off the bottom edge leaves alone. The axis
+# box therefore starts on the same line down the
+# left and ends on the same line up as RQ3's, and a panel of this figure can be
+# read against a panel of that one column by column.
+set multiplot layout 1,3 margins 0.11355, 0.88645, 0.241263, 0.705895 spacing 0.05355
 
 # vertical y-axis title on the far left, inside the canvas. It says percentage
 # where the 3-Stage figure says time: the two bars of a group are both shares of
 # their own pair, not durations.
-set label "Percentage (%)" rotate by 90 at screen 0.025, 0.55 center font ",11.77"
+set label "Percentage (%)" rotate by 90 at screen 0.0586, 0.468421 center font ",11.77"
 
 # centred on the three panels
-set label "# of allow statements" at screen 0.52, 0.05 center font ",11.77"
+set label "# of allow statements" at screen 0.5, 0.047368 center font ",11.77"
 
 # Manual legend for the two shares, one row, the only legend of the figure: the
 # blocks are the same shape and spacing as the 3-Stage figure's. Each label names
 # its bar on its own - both bars are shares of their own pair, which the y-axis
 # title already says, so "Ratio of labels to" was only repeating it. With the
 # short labels the row is much narrower than the two-block one it replaced, so it
-# is placed as a whole: its two ends are centred on 0.52, the same centre the
+# is placed as a whole: its two ends are centred on 0.5, the same centre the
 # panels have and "# of allow statements" below them uses, rather than each block
 # keeping the position it had under the longer text.
-set object 1 rect from screen 0.264, 0.934 to screen 0.292, 0.960 fc rgb "#00A000" fs solid noborder
-set object 2 rect from screen 0.608, 0.934 to screen 0.636, 0.960 fc rgb "#2b8cbe" fillstyle pattern 5 border lc rgb "#2b8cbe" lw 1
-set label 20 "Intent Miner"   at screen 0.301, 0.948 left font ",11.77"
-set label 21 "Intent Reducer" at screen 0.645, 0.948 left font ",11.77"
+set object 1 rect from screen 0.244, 0.801053 to screen 0.272, 0.825263 fc rgb "#253494" fillstyle pattern 1 border lc rgb "#253494" lw 1
+set object 2 rect from screen 0.588, 0.801053 to screen 0.616, 0.825263 fc rgb "#00A000" fs solid noborder
+set label 20 "Intent Miner"   at screen 0.281, 0.813684 left font ",11.77"
+set label 21 "Intent Reducer" at screen 0.625, 0.813684 left font ",11.77"
 
 # ------------------------------------------------------------------
 # Panels: two adjacent bars per policy, the left one the share of the intent
@@ -79,37 +89,48 @@ set label 21 "Intent Reducer" at screen 0.645, 0.948 left font ",11.77"
 set style data boxes
 set style fill solid 1.0 noborder
 
-# --- Panel 1 (5-Keys) ---
+# --- Panel 1 (5-Key) ---
 set xtics ( "3" 0, "6" 1, "9" 2, "12" 3, "15" 4 ) scale 0
 set xrange[-0.40: 4.40]
 set yrange[0: 120]
 set size 1, 0.9
 set offsets 0,0,0,0
 set key off
-set label "5-Keys" at screen 0.134, 0.76 center font ",11.77"
-plot 'archive_data_new/rerun10b/enc_05.dat' using ($1-0.115):2 w boxes ls 3 fs solid 1.0 noborder title 'Intent Miner', \
-     '' using ($1+0.115):3                   w boxes ls 2 fs pattern 5 border title 'Intent Reducer'
+set label "5-Key" at screen 0.1476, 0.667368 center font ",11.77"
+plot 'archive_data_new/rerun10b/enc_05.dat' using ($1-0.115):2 w boxes ls 3 fs pattern 1 border title 'Intent Miner', \
+     '' using ($1+0.115):3                   w boxes ls 2 fs solid 1.0 noborder title 'Intent Reducer'
 
-# --- Panel 2 (6-Keys) ---
-set xtics ( "3" 0, "6" 1, "9" 2, "12" 3, "15" 4 ) scale 0
-set xrange[-0.40: 4.40]
-set yrange[0: 120]
-set size 1, 0.9
-set offsets 0,0,0,0
-set key off
-set label "6-Keys" at screen 0.474, 0.76 center font ",11.77"
-plot 'archive_data_new/rerun10b/enc_06.dat' using ($1-0.115):2 w boxes ls 3 fs solid 1.0 noborder notitle, \
-     '' using ($1+0.115):3                   w boxes ls 2 fs pattern 5 border notitle
+# Figure-level text is written once, not once per panel: gnuplot redraws every
+# label and every object on each panel's plot, and each of them here sits at absolute
+# screen coordinates, so a second pass lands on top of the first and prints as
+# if the text were set in a heavier weight. The first panel draws them above;
+# the panels after it must not.
+unset label
+unset object
 
-# --- Panel 3 (7-Keys) ---
+# --- Panel 2 (6-Key) ---
 set xtics ( "3" 0, "6" 1, "9" 2, "12" 3, "15" 4 ) scale 0
 set xrange[-0.40: 4.40]
 set yrange[0: 120]
 set size 1, 0.9
 set offsets 0,0,0,0
 set key off
-set label "7-Keys" at screen 0.814, 0.76 center font ",11.77"
-plot 'archive_data_new/rerun10b/enc_07.dat' using ($1-0.115):2 w boxes ls 3 fs solid 1.0 noborder notitle, \
-     '' using ($1+0.115):3                   w boxes ls 2 fs pattern 5 border notitle
+set label "6-Key" at screen 0.423, 0.667368 center font ",11.77"
+plot 'archive_data_new/rerun10b/enc_06.dat' using ($1-0.115):2 w boxes ls 3 fs pattern 1 border notitle, \
+     '' using ($1+0.115):3                   w boxes ls 2 fs solid 1.0 noborder notitle
+
+unset label
+unset object
+
+# --- Panel 3 (5-Key*) ---
+set xtics ( "3" 0, "6" 1, "9" 2, "12" 3, "15" 4 ) scale 0
+set xrange[-0.40: 4.40]
+set yrange[0: 120]
+set size 1, 0.9
+set offsets 0,0,0,0
+set key off
+set label "5-Key*" at screen 0.6985, 0.667368 center font ",11.77"
+plot 'archive_data_new/rerun10b/enc_07.dat' using ($1-0.115):2 w boxes ls 3 fs pattern 1 border notitle, \
+     '' using ($1+0.115):3                   w boxes ls 2 fs solid 1.0 noborder notitle
 
 unset multiplot

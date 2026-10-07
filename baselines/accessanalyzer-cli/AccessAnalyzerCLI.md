@@ -48,16 +48,16 @@ This guide explains how to use the scripts to invoke **AWS Access Analyzer** via
 Use **aws_batch.sh** (inspired by [Invoking AWS Access Analyzer via CLI](https://github.com/aws-samples/aws-iam-access-analyzer-samples)) to invoke Access Analyzer and mine intents.
 
 ```bash
-sh baselines/accessanalyzer-cli/aws_batch.sh <input_dir> <timeout_seconds>
+sh baselines/accessanalyzer-cli/aws_batch.sh <input_dir> [timeout_seconds]
 ```
 
 - `input_dir`: policy directory under `data/`
-- `timeout_seconds`: timeout value in seconds
+- `timeout_seconds`: timeout value in seconds; optional, and `0` (the default) means no timeout
 
 Outputs are written to `results/accessanalyzer_cli/`.
 
 Example:
 
 ```bash
-sh baselines/accessanalyzer-cli/aws_batch.sh data/TestCLI
+sh baselines/accessanalyzer-cli/aws_batch.sh data/Correctness 3600
 ```

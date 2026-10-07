@@ -19,9 +19,9 @@ Beyond the original batch engine, this artifact implements a four-stage optimiza
 
 - **BR → AR (essential-finding pre-filter, intent reducer).** A BDD prefix/suffix scan identifies the intents already covering the policy space and removes non-essential intents before reduction, so the reducer avoids solving ILP for candidates that cannot contribute a new essential finding.
 - **AR → AM (refinement DAG and BFS early-exit in the intent miner).** The miner derives, via `getRestBDD`, the residual BDD of each finding — the region it covers but none of its children do — by subtracting its children's nodes one after another (`((findingNode \ c₁) \ c₂) \ …`), so the remaining policy space is maintained locally instead of being re-materialized from the full decision tree. AM makes that reduction cheap in two ways: each child's node is built as `parentNode ∧ var(refinedKey)` along a refinement DAG rather than by re-conjoining every domain of the intent, which replaces a conjunction over all domains with a single `and` against one refinement variable; and a finding disjoint from the remaining policy space is dropped before its subtree is expanded, so the reduction is never reached for intents that cannot contribute a new finding.
-- **AM → AI (incremental EC engine).** The EC engine is replaced by an incremental one based on Delta-net's atom-splitting approach (`ECEngine`), which splits only the ECs intersecting with newly added labels rather than re-enumerating the full label set on every update. Its incremental state is shared and carried forward across policies through a single `MCPFactory` mounted on the policy model, so the structure accumulated for one policy is extended by the next instead of being rebuilt from scratch.
+- **AM → AI (incremental EC engine).** The EC engine is replaced by an incremental one (`ECEngine`), which splits only the ECs intersecting with newly added labels rather than re-enumerating the full label set on every update. Its incremental state is shared and carried forward across policies through a single `MCPFactory` mounted on the policy model, so the structure accumulated for one policy is extended by the next instead of being rebuilt from scratch.
 
-Each optimization is validated in the paper by a two-stage comparison (e.g. BR vs. AR, AR vs. AM, AM vs. AI) over the `Scalability_05/06/07Keys` datasets and the real-world `RW` dataset. The `RW` policies themselves are not public (see [Project Structure](#project-structure)), but the per-stage `summary.txt` files the runs produced are, and only re-running the pipeline over `RW` is not possible.
+Each optimization is validated in the paper by a two-stage comparison (e.g. BR vs. AR, AR vs. AM, AM vs. AI) over the `Scalability_05/06/07Keys` datasets and the real-world `RW` dataset. The `RW` corpus is not public, for commercial reasons.
 
 All four stages are selectable from a single build through three cumulative system properties. Each defaults to `true`, so an invocation with no switches at all is the fully optimized **AI** stage:
 
@@ -31,14 +31,14 @@ All four stages are selectable from a single build through three cumulative syst
 | `-Dopt.am=false` | AM | refinement-DAG node construction and BFS early-exit in the intent miner |
 | `-Dopt.ai=false` | AI | incremental EC engine and cross-policy shared `MCPFactory` |
 
-The switches must precede `-jar`, and they compose: `-Dopt.am=false -Dopt.ai=false` gives **AR**, all three off gives **BR**. `tools/accessrefinery/running_bdd_reducer_20rs.sh` runs all four stages this way. Turning a switch off restores the pre-optimization algorithm, not the archived numbers — the four configurations must, however, produce semantically equivalent findings; their textual intent representations can differ where cross-policy factory sharing contributes additional fully permissive domains (see [Using AccessRefinery](#using-accessrefinery)).
+The switches must precede `-jar`, and they compose: `-Dopt.am=false -Dopt.ai=false` gives **AR**, all three off gives **BR**. `tools/accessrefinery/running_bdd_reducer_20rs.sh` runs all four stages this way. Turning a switch off restores the pre-optimization algorithm, not the archived numbers.
 
 ## Getting AccessRefinery
 
-You can download the AccessRefinery FSE 2026 artifact from the [GitHub repository](https://github.com/XJTU-NetVerify/accessrefinery.git):
+You can download the AccessRefinery FSE 2026 artifact from the [GitHub repository](https://github.com/wtjwtm/accessrefinery.git):
 
 ```shell
-git clone https://github.com/XJTU-NetVerify/accessrefinery.git
+git clone https://github.com/wtjwtm/accessrefinery.git
 ```
 
 ## Installing AccessRefinery
@@ -53,7 +53,7 @@ Since *AWS Access Analyzer* is not open source and provides only a Command-Line 
 
 - `data/`: Dataset for experiments.
   - `Scalability_05Keys/`, `Scalability_06Keys/`, `Scalability_07Keys/`: Synthetic scalability sets of 15 policies each, used for the statement-count sweeps.
-  - `RW/`: **Not public.** The real-world corpus of 506 policies, in the labeled version in which the synthesized label `s3:::886499mir` is added to every statement so that each policy contains at least one label to be mined. The raw real-world policies are not publicly available due to commercial restrictions, so the corpus itself is not released. What the runs over it produced — the aggregated per-stage `summary.txt` (nine numeric columns per policy, no policy text) and the plotting data derived from it — is public, in the stage folders and in `paper_figures/archive_data/` and `paper_figures/archive_data_new/`. Only the experiments themselves cannot be re-run. See [REPRODUCTION.md](REPRODUCTION.md).
+  - `RW/`: The real-world corpus of 506 policies, in the labeled version in which the synthesized label `s3:::886499mir` is added to every statement. **Not public**, for commercial reasons, so the folder is absent and the run scripts skip it.
   - `Correctness/`: Correctness set used to check that the mined intents cover the policies.
 - `accessrefinery/`: Implementation of *AccessRefinery*.
   - `bdd/`: Implementation of the binary decision diagram backend used by *MCP*.
@@ -69,7 +69,7 @@ Since *AWS Access Analyzer* is not open source and provides only a Command-Line 
   - `accessrefinery-javadoc`: Javadoc for *AccessRefinery*.
 - `paper_figures/`: Scripts and inputs for plotting the figures in the paper.
   - `gnuplot/`, `archive_data/`, `results/`: the figures of the original submission.
-  - `gnuplot_new/`, `archive_data_new/`, `results_new/`: the four figures of the extension experiment, the BR → AR → AM → AI optimization pipeline.
+  - `gnuplot_new/`, `archive_data_new/`, `results_new/`: the figures of the extension experiment, the BR → AR → AM → AI optimization pipeline — the four that appear in the paper (Figures 16-19) and four supporting variants that do not.
 - `archive_results/`: Archived experimental results of the experiments reported in the original submission.
 - `archive_results_new/`: Archived experimental results of the extension experiment (the BR → AR → AM → AI optimization pipeline), one folder per stage:
   - `accessrefinery_bdd_reducer_20rs/`: BR (the original stage).
@@ -77,7 +77,7 @@ Since *AWS Access Analyzer* is not open source and provides only a Command-Line 
   - `accessrefinery_bdd_reducer_AM_20rs/`: AM.
   - `accessrefinery_bdd_reducer_AI_20rs/`: AI.
 
-  Each stage folder holds the dataset folders `Scalability_05Keys/`, `Scalability_06Keys/`, `Scalability_07Keys/` and `RW/`; each dataset folder holds the per-policy `*_result.json`, `*_time.csv` and the aggregated `summary.txt`. The three scalability folders contain 15 policies each; `RW/` covers the 506 policies of the labeled real-world corpus (`data/RW/`, see above), but only its aggregated `summary.txt` is public — the per-policy `*_result.json` and `*_time.csv` are not, because the policies they would reveal are not public. All four stages were run with `--round 20` (`tools/accessrefinery/running_bdd_reducer_20rs.sh`). `summary.txt` has a header row followed by one row per policy, with the columns `NumberStatement, NumberMCI, NumberRRI, MCISolvingRoundAverage, TotalTimeAverage, MCILabelsTimeAverage, MCIOperationsTimeAverage, RRIOperationsTimeAverage, RRIILPSolvingTimeAverage` (times in ms).
+  Each stage folder holds the dataset folders `Scalability_05Keys/`, `Scalability_06Keys/`, `Scalability_07Keys/` and `RW/`; each of the three scalability folders holds the per-policy `*_result.json`, `*_time.csv` and the aggregated `summary.txt`, and contains 15 policies each. `RW/` covers the 506 policies of the real-world corpus, which is not public for commercial reasons. All four stages were run with `--round 20` (`tools/accessrefinery/running_bdd_reducer_20rs.sh`). `summary.txt` has a header row followed by one row per policy, with the columns `NumberStatement, NumberMCI, NumberRRI, MCISolvingRoundAverage, TotalTimeAverage, MCILabelsTimeAverage, MCIOperationsTimeAverage, RRIOperationsTimeAverage, RRIILPSolvingTimeAverage` (times in ms).
 
 Additionally, the `mcp` and `refinery` directories include Maven test cases that can be used to verify our code's correctness and to help developers run tests.
 
@@ -244,8 +244,6 @@ In addition, the incremental EC engine can be switched between cross-policy and 
 - `-Dinc.independent=false` (default): one shared `MCPFactory` drives all policies within a round, so the incremental EC/BDD state is carried forward across policies.
 - `-Dinc.independent=true`: each policy gets its own fresh `MCPFactory`, so no state accumulates across policies.
 
-The shared factory is a whole-corpus optimization: it is what makes the large corpora fast (on `Scalability_05Keys/` it is about 7x faster than the per-policy configuration), but it is a net loss on a small corpus whose policies do not all use the same condition keys, and it changes the intents that are written out. Every policy's intent is seeded from the domains the factory holds, so on such a corpus a policy also receives condition keys declared only by its neighbours. Those extra keys carry a fully permissive value, so they denote the same requests, but they make the intent differ textually from the per-policy run. Use per-policy factories for correctness checking: on `data/Correctness/` that yields the reference intents and cuts SMT solving from 1859 to 314 rounds (summing the `MCISolvingRoundAverage` column of `summary.txt` over the twelve policies; a round count is reproducible, unlike wall-clock time).
-
 Setting `-Dopt.ai=false` (see [Optimization Pipeline](#optimization-pipeline)) disables both the incremental EC engine and the cross-policy shared `MCPFactory`, restoring the original per-policy EC construction; it forces this per-policy behavior whatever `inc.independent` says.
 
 **Example:**
@@ -285,7 +283,7 @@ see [AccessAnalyzerUsage.md](https://github.com/XJTU-NetVerify/accessrefinery/bl
 
 This section describes (1) how to reproduce the results in `results/`, and (2) how to reproduce to the corresponding figures, tables, and conclusions in the paper from `results/`.
 
-*In this artifact we additionally report results on the real-world `RW` dataset; the corpus used here is the labeled version described above (see `data/RW/`). The raw real-world policies are not publicly available due to commercial restrictions, so the corpus itself is not released — but the per-stage `summary.txt` files and the plotting data they produced are.*
+*In this artifact we additionally report results on the real-world `RW` dataset; the corpus used here is the labeled version, in which the synthesized label `s3:::886499mir` is added to every statement. The raw real-world policies are not publicly available due to commercial restrictions, so the corpus itself is not released.*
 
 ### Reproducing  Results
 
@@ -495,6 +493,10 @@ Expected Output:
 
 - `paper_figures/results/RQ3-Experiment-Scalability-Reducing.pdf`
 
+#### Plotting Figure 14 (Section 6.4)
+
+The real-world `RW` data this figure reports on is not public, for commercial reasons, so this reproduction is not available.
+
 #### Plotting Figure 15 (Section 6.5)
 
 ```shell
@@ -527,6 +529,10 @@ Expected Output:
 
 The four-stage optimization pipeline (BR → AR → AM → AI) is the extension experiment of this revision. Its data lives apart from the rest of the artifact: `paper_figures/archive_data_new/`, extracted from the per-policy `summary.txt` of the corresponding stage folders under `archive_results_new/` (`accessrefinery_bdd_reducer_20rs/` for BR, `..._AR_20rs/`, `..._AM_20rs/`, `..._AI_20rs/`), with the `.plt` files in `paper_figures/gnuplot_new/` and the rendered PDFs in `paper_figures/results_new/`.
 
+The four supporting variants listed below read a second data set instead, `paper_figures/archive_data_new/rerun10b/`, which `tools/figures/extract_optimization_pipeline_10b.sh` extracts from the per-stage `summary.txt` of the 10-round re-run under `results/rerun10b/`.
+
+The real-world `RW` corpus is not public, for commercial reasons, so the pipeline cannot be re-run over it; this reproduction covers the `05`, `06` and `07` datasets.
+
 ```shell
 cd paper_figures
 
@@ -550,7 +556,9 @@ Expected Output (in `paper_figures/results_new/`):
 - `RQ8-MiningPruning-AR-AM.pdf`: AR vs. AM (Figure 18).
 - `RQ9-Incremental-AM-AI.pdf`: AM vs. AI (Figure 19).
 
-Preview images of these four figures are kept in `docs/figures/` as `figure16.png`--`figure19.png`. Each of the four has a real-world `RW` panel of 506 datasets in addition to the three synthetic ones.
+`paper_figures/draw.sh` also renders four supporting variants of Figures 16 and 18 — `Optimization-Overview-Bars-3Stage.pdf`, `Optimization-Overview-Bars-Percentage.pdf`, `Optimization-Overview-Bars-Segmented.pdf` and `RQ8-MiningPruning-AR-AI.pdf` — which are kept in the artifact but are not printed in the paper.
+
+Preview images of the four paper figures are kept in `docs/figures/` as `figure16.png`--`figure19.png`. Each of the four has a real-world `RW` panel of 506 datasets in addition to the three synthetic ones.
 
 ## For Developers
 

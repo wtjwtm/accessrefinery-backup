@@ -17,13 +17,17 @@
 # The shipped copies of these four folders live in archive_results_new/, which
 # this script never touches; check the regenerated results/ against them.
 #
-# The RW archive (data/RW/) is the real-world corpus with the synthesized label
-# s3:::886499mir added to every statement; it is stored under the folder name
-# "RW" inside each stage's results directory.
+# The real-world corpus (data/RW/) is the labeled version of the corpus, in which
+# the synthesized label s3:::886499mir is added to every statement; it is stored
+# under the folder name "RW" inside each stage's results directory. The corpus
+# itself is not public, for commercial reasons, so data/RW/ ships empty and the
+# RW run below is skipped unless the folder has been restored locally.
 
 run_stage() {
   local name=$1; shift
-  java "$@" -jar target/accessrefinery-1.0.jar -m -r --round 20 -f data/RW/
+  if [ -d data/RW/ ]; then
+    java "$@" -jar target/accessrefinery-1.0.jar -m -r --round 20 -f data/RW/
+  fi
   java "$@" -jar target/accessrefinery-1.0.jar -m -r --round 20 -f data/Scalability_05Keys/
   java "$@" -jar target/accessrefinery-1.0.jar -m -r --round 20 -f data/Scalability_06Keys/
   java "$@" -jar target/accessrefinery-1.0.jar -m -r --round 20 -f data/Scalability_07Keys/

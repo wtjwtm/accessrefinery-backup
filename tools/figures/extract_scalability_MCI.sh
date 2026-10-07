@@ -1,12 +1,39 @@
 #!/bin/bash
 mkdir -p paper_figures/archive_data/
+
+# The numbers of this file are written without a trailing ".0": 972, not 972.0,
+# and 3600000, not 3600000.0. Both spellings are the same number to gnuplot, but
+# the archived `.dat` files are the artifact's ground truth and are committed, so
+# the script keeps their shape rather than churning a diff on every re-run. The
+# comma formula of this test is the one the file already had.
+trim0() {
+    printf '%s' "$1" | sed -e '/\./!b' -e 's/0*$//' -e 's/\.$//'
+}
+
+#
+# The third argument names where the two AccessRefinery columns come from, since
+# 7-Keys has no standalone miner run: "miner" (the default, and what 05-/06-Keys
+# use) reads MCILabelsTimeAverage + MCIOperationsTimeAverage off the two refinery
+# miner summaries, "reducer" reads the same two columns off the two refinery
+# reducer summaries, which mine and reduce in one pass and so have the same
+# mining half. Column 2 of the MCILabelsTimeAverage pair is what the sum is
+# taken over, so both spellings land on the same quantity.
 process_dir() {
     local dir_name=$1
     local out_file=$2
+    local refinery=${3:-miner}
     local f2="results/accessanalyzer_z3_miner_1rs/${dir_name}/summary.csv"
     local f3="results/accessanalyzer_cvc5_miner_1rs/${dir_name}/summary.csv"
     local f4="results/accessrefinery_sat_miner_10rs/${dir_name}/summary.txt"
     local f5="results/accessrefinery_bdd_miner_10rs/${dir_name}/summary.txt"
+    local spec4=5
+    local spec5=5
+    if [ "$refinery" = reducer ]; then
+        f4="results/accessrefinery_sat_reducer_3rs/${dir_name}/summary.txt"
+        f5="results/accessrefinery_bdd_reducer_10rs/${dir_name}/summary.txt"
+        spec4=6+7
+        spec5=6+7
+    fi
     local val2=()
     local val3=()
     local val4=()
@@ -25,13 +52,21 @@ process_dir() {
     if [ -f "$f3" ]; then
         mapfile -t val3 < <(awk -F',' 'NR>1 {printf "%.1f\n", $5 * 1000}' "$f3")
     fi
-    # Read f4 (TXT, whitespace delimited, 5th col = TotalTimeAverage)
+    # Read f4 (TXT, whitespace delimited, spec4 = the column or column sum)
     if [ -f "$f4" ]; then
-        mapfile -t val4 < <(awk 'NR>1 {printf "%.2f\n", $5}' "$f4")
+        mapfile -t val4 < <(awk -v spec="$spec4" 'NR>1 {
+            n = split(spec, p, "+"); s = 0
+            for (i = 1; i <= n; i++) s += $p[i]
+            printf "%.2f\n", s
+        }' "$f4")
     fi
-    # Read f5 (TXT, whitespace delimited, 5th col = TotalTimeAverage)
+    # Read f5 (TXT, whitespace delimited, spec5 = the column or column sum)
     if [ -f "$f5" ]; then
-        mapfile -t val5 < <(awk 'NR>1 {printf "%.2f\n", $5}' "$f5")
+        mapfile -t val5 < <(awk -v spec="$spec5" 'NR>1 {
+            n = split(spec, p, "+"); s = 0
+            for (i = 1; i <= n; i++) s += $p[i]
+            printf "%.2f\n", s
+        }' "$f5")
     fi
     > "$out_file"
     for i in {0..14}; do
@@ -39,7 +74,7 @@ process_dir() {
         local v3=${val3[$i]:-3600000.0}
         local v4=${val4[$i]:-3600000.00}
         local v5=${val5[$i]:-3600000.00}
-        echo "$((i+1)) $v2 $v3 $v4 $v5" >> "$out_file"
+        printf '%s\t%s\t%s\t%s\t%s\n' "$((i+1))" "$(trim0 "$v2")" "$(trim0 "$v3")" "$(trim0 "$v4")" "$(trim0 "$v5")" >> "$out_file"
     done
 }
 
@@ -72,8 +107,18 @@ ai_series() {
     done
 }
 
+# 7-Keys. Its two Access Analyzer mining baselines were run on 2026-09-28, one
+# hour per policy and one JVM per policy (tools/accessrefinery/../aa08_miner.sh
+# on the experiment host): Z3 finished the first four policies and timed out on
+# the fifth, CVC5 the first fourteen and timed out on the fifteenth, and the
+# summary holds a row only for a policy that finished - the same shape the
+# 05-/06-Keys columns have. The `reducer` argument covers the other half of the
+# file: this dataset has no standalone refinery miner run, so columns 4 and 5
+# come from the SAT and BDD reducer summaries, which mine and reduce in one pass.
 process_dir "Scalability_05Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K2.dat"
 process_dir "Scalability_06Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K3.dat"
+process_dir "Scalability_07Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K4.dat" reducer
 ai_series "Scalability_05Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K2-AI.dat" "6+7"
 ai_series "Scalability_06Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K3-AI.dat" "6+7"
+ai_series "Scalability_07Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K4-AI.dat" "6+7"
 echo "Done extracting scalability MCI data."

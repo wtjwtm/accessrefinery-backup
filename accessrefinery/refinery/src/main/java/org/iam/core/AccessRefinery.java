@@ -154,10 +154,6 @@ public class AccessRefinery {
         List<MCPIntent> findings = mcpFinding.stream()
                 .filter(f -> !f.getMCPNode().isZero())
                 .collect(Collectors.toList());
-        int n = findings.size();
-        if (n <= 1) {
-            return mcpFinding;
-        }
 
         MCPBitVector policySpace = mcpPolicy.getMCPNodeCalculation();
 
@@ -230,7 +226,7 @@ public class AccessRefinery {
      * the rest ({@code candidates}), using a BDD prefix/suffix scan so that each
      * finding's coverage is compared against all others in one pass.
      *
-     * @param findings the non-empty findings to partition
+     * @param findings the findings to partition, possibly empty
      * @param policySpace the symbolic policy space being covered
      * @param essential populated with the uniquely-covering findings
      * @param candidates populated with the findings left for the EC/ILP set cover
@@ -239,6 +235,17 @@ public class AccessRefinery {
     private MCPBitVector essentialPreFilter(List<MCPIntent> findings, MCPBitVector policySpace,
                                             HashSet<MCPIntent> essential, List<MCPIntent> candidates) {
         int n = findings.size();
+        // No finding survives the zero-node filter: nothing is covered and nothing is
+        // essential, so the whole space is still open. This guard is not an
+        // optimization — the suffix scan below indexes suffOr[n-1] and would throw on
+        // n == 0. It is what lets reducingIntents drop its former `n <= 1` shortcut:
+        // that shortcut returned before this scan ran, so on the policies with the
+        // fewest findings the AR stage's reducing columns carried the cost of the
+        // short-circuit instead of the pre-filter's. The selected set is the same
+        // either way — the shortcut only distorted the measurement.
+        if (n == 0) {
+            return policySpace;
+        }
 
         List<MCPBitVector> cov = new ArrayList<>(n);
         for (MCPIntent f : findings) {

@@ -10,9 +10,9 @@ This document covers two sets of experiments, and their material is kept apart s
 
 `results/` is shared: it is the working directory that the experiment scripts write to and that the extraction scripts read from.
 
-One overlap to be aware of: §8-§10 (Figures 12-14) belong to the first set — their baselines and their `W/O All` series are the original ones — but they also plot the `AccessRefinery(W/ All)` series, which comes from the `AI` stage of the pipeline. That series is the single-column `Experiment-*-AI.dat` file, kept in `paper_figures/archive_data/` with the rest of those figures' inputs; §8-§10 therefore read only `archive_data/`.
+One overlap to be aware of: §8 and §9 (Figures 12 and 13) belong to the first set — their baselines and their `W/O All` series are the original ones — but they also plot the `AccessRefinery(W/ All)` series, which comes from the `AI` stage of the pipeline. That series is the single-column `Experiment-*-AI.dat` file, kept in `paper_figures/archive_data/` with the rest of those figures' inputs; §8 and §9 therefore read only `archive_data/`.
 
-> **Note:** the real-world `RW` corpus is not released, for commercial reasons. The 506 raw policies of `data/RW/` are not public, so the runs that read them cannot be re-executed from this artifact. Everything needed to regenerate the figures that report on those runs is public: the aggregated `summary.txt` of each stage (nine numeric columns per policy, no policy text) and the plotting inputs in `paper_figures/archive_data/` and `paper_figures/archive_data_new/`.
+> **Note:** the real-world `RW` corpus is not public, for commercial reasons. The 506 raw policies of `data/RW/` are not released, so the runs that read them cannot be re-executed from this artifact.
 
 #### 1. Claim Being Reproduced (Section 5):
 
@@ -20,7 +20,7 @@ One overlap to be aware of: §8-§10 (Figures 12-14) belong to the first set —
 
 **Steps:**
 
-See `archive_results/accessanalyzer_cli/Scalability_06Keys/run.log`. The run produced results for 1 to 10 statements and none beyond: `aws_result/` holds `01_allow_result.json` through `10_allow_result.json`, and the last entry in the log is `11_allow.json`, which stops at `[2/5] Resource scan started` and never saves an intent. The 10-statement case also shows the scan breaking down rather than completing: it is given far more time than any earlier policy yet returns a single intent, where the intent count follows n² for every policy up to 9 (81 intents at 9 statements). This indicates that invoking *AWS Access Analyzer* via the CLI will exceed the one-hour limit on a 6-key dataset with 11 to 15 statements, with the 10-statement case already returning a truncated result.
+See `archive_results/accessanalyzer_cli/Scalability_06Keys/run.log`. The run produced results for 1 to 10 statements and none beyond: the archived folder holds `01_allow_result.json` through `09_allow_result.json` — the tenth, written into the CLI's own `aws_result/` directory during the run, was not archived with the rest — and the last entry in the log is `11_allow.json`, which stops at `[2/5] Resource scan started` and never saves an intent. The 10-statement case also shows the scan breaking down rather than completing: it is given far more time than any earlier policy yet returns a single intent, where the intent count follows n² for every policy up to 9 (81 intents at 9 statements). This indicates that invoking *AWS Access Analyzer* via the CLI will exceed the one-hour limit on a 6-key dataset with 11 to 15 statements, with the 10-statement case already returning a truncated result.
 
 ```test
 [4/5] intents saved at ./aws_result/Scalability_06Keys//10_allow_result.json
@@ -104,7 +104,7 @@ Clearing paper_figures/results
 Clearing paper_figures/results_new
 ```
 
-The plotting inputs themselves live in `paper_figures/archive_data/` (the figures of the original submission) and `paper_figures/archive_data_new/` (the four figures of the extension experiment, §14-§17); `clean_plotting.sh` never touches either, and the `.plt` files read them directly.
+The plotting inputs themselves live in `paper_figures/archive_data/` (the figures of the original submission) and `paper_figures/archive_data_new/` (the figures of the extension experiment — §14-§17, and the four supporting variants those sections do not cover); `clean_plotting.sh` never touches either, and the `.plt` files read them directly.
 
 **Running:**
 
@@ -298,33 +298,7 @@ bash tools/figures/extract_scalability_RRI.sh
 
 <img src="docs/figures/figure14.png" width="450"/>
 
-The figure plots four series per panel, over the 506 real-world datasets:
-
-| Series | Left panel (mining) | Right panel (reduction) |
-|---|---|---|
-| `Access Analyzer(Z3)` | `Experiment-Scalability-MCI-RealWorld.dat` col 1 | `Experiment-Scalability-RRI-RealWorld.dat` col 1 |
-| `Access Analyzer(CVC5)` / `Baseline(CVC5)` | col 2 | col 2 |
-| `AccessRefinery(W/O All)` | col 4 | col 4 |
-| `AccessRefinery(W/ All)` | `Experiment-Scalability-RRI-RealWorld-AI.dat` | same file |
-
-Only the `AccessRefinery(W/ All)` series can be regenerated from the public data: it is the `TotalTimeAverage` column of `accessrefinery_bdd_reducer_AI_20rs/RW/summary.txt`, one row per policy, converted to seconds and sorted ascending — the figure plots cumulative time against datasets ordered cheapest-first, so the order of the column is what the sort establishes. There is no extraction script for the other three columns.
-
-```bash
-awk 'NR>1 {printf "%.6f\n", $5 / 1000}' archive_results_new/accessrefinery_bdd_reducer_AI_20rs/RW/summary.txt \
-  | sort -g > paper_figures/archive_data/Experiment-Scalability-RRI-RealWorld-AI.dat
-```
-
-The `.dat` files the figure reads all ship in `paper_figures/archive_data/`; nothing needs to be copied or extracted before plotting.
-
-**Running:**
-
-```shell
-(cd paper_figures && gnuplot gnuplot/RQ4-Experiment-Scalabiliy-RealWorld.plt)
-```
-
-**Expected Output:**
-
-- `paper_figures/results/RQ4-Experiment-Scalabiliy-RealWorld.pdf`
+The real-world `RW` data this figure reports on is not public, for commercial reasons, so this reproduction is not available.
 
 #### 11. Claim Being Reproduced (Section 6.5):
 
@@ -434,7 +408,11 @@ The table is generated by LaTeX. Therefore, no plotting program is used.
 
 > ## Extension Experiment: §14-§18
 >
-> Sections 14 to 18 reproduce the extension experiment of this revision: the **BR → AR → AM → AI optimization pipeline**, whose four stages isolate one optimization each. They are the only sections that need `archive_results_new/`, `paper_figures/gnuplot_new/`, `paper_figures/archive_data_new/` and `paper_figures/results_new/`. §1-§13 do not read any of them, and these five sections read nothing from the first set except the `RW` and synthetic per-policy `summary.txt` files that both sets share in `results/`.
+> Sections 14 to 18 reproduce the extension experiment of this revision: the **BR → AR → AM → AI optimization pipeline**, whose four stages isolate one optimization each. They are the only sections that need `archive_results_new/`, `paper_figures/gnuplot_new/`, `paper_figures/archive_data_new/` and `paper_figures/results_new/`. §1-§13 do not read any of them.
+>
+> The real-world `RW` corpus is not public, for commercial reasons, so this reproduction covers the `05`, `06` and `07` datasets.
+>
+> Figures 16-19 each carry a fourth, real-world panel besides the three synthetic ones. Those panels are regenerated along with the rest by the same extraction script, from the per-stage `RW/summary.txt` that ship in `archive_results_new/`. The `RW` corpus they were produced from is not public, for commercial reasons, so the pipeline cannot be re-run over that corpus.
 
 <img src="docs/figures/figure16.png" width="450"/>
 
@@ -468,10 +446,6 @@ This one script regenerates the data of all four optimization-pipeline figures (
 
 - `paper_figures/archive_data_new/p_bar_ix_05.dat`, `p_bar_ix_06.dat`, `p_bar_ix_07.dat`
   Header `idx BR AR AM AI`: column 5 of all four stages for the five policies of each Scalability dataset that have 3, 6, 9, 12 and 15 statements — i.e. summary rows 3, 6, 9, 12 and 15, the same rows tabulated by Table 2.
-- `paper_figures/archive_data_new/rw_br_ai.dat`
-  Header `Policy BR AI`: on `RW`, column 5 of `BR` against column 6 (`MCILabelsTimeAverage`) of `AI`.
-
-In every `RW` file the rows are sorted by the file's first data column ascending and numbered 0 to 505, and both columns of a row come from the same policy. The sort key is the computed value rather than its two-decimal rendering in `summary.txt`: two policies whose values both print as, say, `1.32` are still ordered by their exact sums, so the row order does not depend on the rounding of the report.
 
 **Running:**
 
@@ -499,8 +473,6 @@ bash tools/figures/extract_optimization_pipeline.sh
 
 - `paper_figures/archive_data_new/p1_05.dat`, `p6_br_ar.dat`, `p1_07.dat`
   Header `Policy A B`: `BR` and `AR` for `Scalability_05Keys`, `06Keys` and `07Keys` respectively, in `summary.txt` row order, policies numbered 1 to 15. (The 6-key file is named `p6_br_ar.dat` rather than `p1_06.dat`.)
-- `paper_figures/archive_data_new/rw_p1.dat`
-  Header `Policy A B`: the same two columns on `RW`, sorted by column A ascending and numbered 0 to 505.
 
 **Running:**
 
@@ -528,8 +500,6 @@ bash tools/figures/extract_optimization_pipeline.sh
 
 - `paper_figures/archive_data_new/p2_05.dat`, `p2_06.dat`, `p2_07.dat`
   Header `Policy A B`: `AR` and `AM` for `Scalability_05Keys`, `06Keys` and `07Keys`, in `summary.txt` row order, policies numbered 1 to 15.
-- `paper_figures/archive_data_new/rw_p2.dat`
-  Header `Policy A B`: the same two columns on `RW`, sorted by column A ascending and numbered 0 to 505.
 
 **Running:**
 
@@ -547,7 +517,7 @@ bash tools/figures/extract_optimization_pipeline.sh
 
 **Running:**
 
-This figure isolates the EC engine: column 6 (`MCILabelsTimeAverage`) of `AM` against `AI`. The `RW` panel is the archive of the measurement described in claim 18 below.
+This figure isolates the EC engine: column 6 (`MCILabelsTimeAverage`) of `AM` against `AI`.
 
 ```bash
 bash tools/figures/extract_optimization_pipeline.sh
@@ -557,8 +527,6 @@ bash tools/figures/extract_optimization_pipeline.sh
 
 - `paper_figures/archive_data_new/p3_05.dat`, `p3_06.dat`, `p3_07.dat`
   Header `Policy A B`: `AM` and `AI` for `Scalability_05Keys`, `06Keys` and `07Keys`, in `summary.txt` row order, policies numbered 1 to 15.
-- `paper_figures/archive_data_new/rw_p3.dat`
-  Header `Policy A B`: the same two columns on `RW`, sorted by column A ascending and numbered 0 to 505.
 
 **Running:**
 
@@ -574,13 +542,4 @@ bash tools/figures/extract_optimization_pipeline.sh
 
 "*On the RW dataset we compare full and incremental handling of one newly added label, given that the original data has already been processed.*"
 
-**Setup:**
-
-The experiment compares the two ways of absorbing a newly added label, given that the policy has already been processed:
-
-- the **full** path (`AM` stage, `-Dopt.ai=false`): the EC partition is recomputed over the policy's entire label set;
-- the **incremental** path (`AI` stage, the default): the new label is added on top of the already processed data, and only the ECs the new label can belong to are touched.
-
-The compared quantity is the `MCILabelsTimeAverage` column of `results/accessrefinery_bdd_reducer_AM_20rs/RW/summary.txt` against the same column of `results/accessrefinery_bdd_reducer_AI_20rs/RW/summary.txt`; both summaries are public, and each row is the average over the 20 rounds of `--round 20`. Averaged over the 506 policies, the full path costs **32.54 ms** per policy against **1.46 ms** incremental, a **95.5%** reduction.
-
-The runs themselves read `data/RW/`, which is not public, so the experiment cannot be re-executed here — only the two summaries it produced can be inspected.
+The real-world `RW` data this claim reports on is not public, for commercial reasons, so this claim is not reproduced here.

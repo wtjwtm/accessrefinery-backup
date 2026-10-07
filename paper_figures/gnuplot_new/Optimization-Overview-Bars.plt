@@ -1,4 +1,4 @@
-set terminal pdfcairo font "Times New Roman,13" linewidth 1 rounded fontscale 1.35 size 33.8cm, 9cm
+set terminal pdfcairo font "Times New Roman,13" linewidth 1 rounded fontscale 1.35 size 33.8cm, 8.5cm
 
 set style line 80 lt rgb "#808080"
 set style line 81 lt 0
@@ -19,17 +19,27 @@ set xtics font ", 11"
 set ytics font ", 11"
 set boxwidth 0.16
 
-set bmargin screen 0.30
-set tmargin at screen 0.90
+set bmargin screen 0.258824
+set tmargin at screen 0.894118
 set rmargin screen 0.86
 
 set output 'results_new/Optimization-Overview-Bars.pdf'
 
-set multiplot layout 1,4 margins 0.08, 0.96, 0.31, 0.80 spacing 0.05
+# The canvas is 8.5 cm, half a centimetre shorter than the 9 cm it was, and the
+# half centimetre came off the bottom edge with nothing else: the panels keep the
+# 4.41 cm height, the fonts their size, and everything that is not below the
+# panels the height it had above the canvas' top edge, which is why the vertical
+# coordinates read as fractions of 8.5 and are no longer the round 0.31 and 0.80.
+# The x title is the one thing that moved, up by that half centimetre and so
+# towards the panels, and it keeps the 0.45 cm it leaves below itself to the
+# canvas' bottom edge, so the gap from the axis down to it is 1.84 cm instead of
+# 2.34 cm.
 
-set label "Time (ms)" rotate by 90 at screen 0.025, 0.55 center font ",13"
-set label "# of allow statements" at screen 0.42, 0.05 center font ",13"
-set label "The ID of datasets" at screen 0.87, 0.05 center font ",13"
+set multiplot layout 1,4 margins 0.08, 0.96, 0.269412, 0.788235 spacing 0.05
+
+set label "Time (ms)" rotate by 90 at screen 0.025, 0.523529 center font ",13"
+set label "# of allow statements" at screen 0.42, 0.052941 center font ",13"
+set label "The ID of datasets" at screen 0.87, 0.052941 center font ",13"
 
 # ------------------------------------------------------------------
 # Panels 1-3: manual boxes, explicit x offsets, policy 5/10/15 at 0/1/2
@@ -46,23 +56,31 @@ set size 1, 0.9
 set offsets 0,0,0,0
 set key off
 # Manual legend: one row, color swatch + short name (size matches AB-AR-AM legend)
-set object 1 rect from screen 0.078, 0.956 to screen 0.106, 0.982 fc rgb "#253494" fs solid noborder
-set object 2 rect from screen 0.218, 0.956 to screen 0.246, 0.982 fc rgb "#2b8cbe" fillstyle pattern 5 border lc rgb "#2b8cbe" lw 1
-set object 3 rect from screen 0.450, 0.956 to screen 0.478, 0.982 fc rgb "#74c476" fillstyle pattern 4 border lc rgb "#74c476" lw 1
-set object 4 rect from screen 0.710, 0.956 to screen 0.738, 0.982 fc rgb "#00A000" fillstyle pattern 1 border lc rgb "#00A000" lw 1
-set label 20 "Original"          at screen 0.114, 0.970 left font ",13"
-set label 21 "Pruning Reducer"   at screen 0.254, 0.970 left font ",13"
-set label 22 "Incremental Miner" at screen 0.486, 0.970 left font ",13"
-set label 23 "Incremental MCP"   at screen 0.746, 0.970 left font ",13"
+set object 1 rect from screen 0.078, 0.953412 to screen 0.106, 0.980941 fc rgb "#253494" fs solid noborder
+set object 2 rect from screen 0.218, 0.953412 to screen 0.246, 0.980941 fc rgb "#2b8cbe" fillstyle pattern 5 border lc rgb "#2b8cbe" lw 1
+set object 3 rect from screen 0.450, 0.953412 to screen 0.478, 0.980941 fc rgb "#74c476" fillstyle pattern 4 border lc rgb "#74c476" lw 1
+set object 4 rect from screen 0.710, 0.953412 to screen 0.738, 0.980941 fc rgb "#00A000" fillstyle pattern 1 border lc rgb "#00A000" lw 1
+set label 20 "Original"          at screen 0.114, 0.968235 left font ",13"
+set label 21 "Pruning Reducer"   at screen 0.254, 0.968235 left font ",13"
+set label 22 "Incremental Miner" at screen 0.486, 0.968235 left font ",13"
+set label 23 "Incremental MCP"   at screen 0.746, 0.968235 left font ",13"
 
-# --- Panel 1 (5-Keys) ---
-set label "5-Keys" at screen 0.155, 0.78 center font ",13"
+# --- Panel 1 (5-Key) ---
+set label "5-Key" at screen 0.155, 0.767059 center font ",13"
 plot 'archive_data_new/p_bar_ix_05.dat' using ($1-0.235):2 w boxes ls 1 fs solid 1.0 noborder title 'BR', \
      '' using ($1-0.075):3                    w boxes ls 2 fs pattern 5 border title 'AR', \
      '' using ($1+0.085):4                    w boxes ls 3 fs pattern 4 border title 'AM', \
      '' using ($1+0.245):5                    w boxes ls 4 fs pattern 1 border title 'AI'
 
-# --- Panel 2 (6-Keys) ---
+# Figure-level text is written once, not once per panel: gnuplot redraws every
+# label and every object on each panel's plot, and each of them here sits at absolute
+# screen coordinates, so a second pass lands on top of the first and prints as
+# if the text were set in a heavier weight. The first panel draws them above;
+# the panels after it must not.
+unset label
+unset object
+
+# --- Panel 2 (6-Key) ---
 set log y
 set format y "10^{%L}"
 set xrange[-0.30: 4.30]
@@ -70,13 +88,16 @@ set yrange[1: 100000]
 set size 1, 0.9
 set offsets 0,0,0,0
 set key off
-set label "6-Keys" at screen 0.385, 0.78 center font ",13"
+set label "6-Key" at screen 0.385, 0.767059 center font ",13"
 plot 'archive_data_new/p_bar_ix_06.dat' using ($1-0.235):2 w boxes ls 1 fs solid 1.0 noborder notitle, \
      '' using ($1-0.075):3                    w boxes ls 2 fs pattern 5 border notitle, \
      '' using ($1+0.085):4                    w boxes ls 3 fs pattern 4 border notitle, \
      '' using ($1+0.245):5                    w boxes ls 4 fs pattern 1 border notitle
 
-# --- Panel 3 (7-Keys) ---
+unset label
+unset object
+
+# --- Panel 3 (5-Key*) ---
 set log y
 set format y "10^{%L}"
 set xrange[-0.30: 4.30]
@@ -84,11 +105,14 @@ set yrange[1: 100000]
 set size 1, 0.9
 set offsets 0,0,0,0
 set key off
-set label "7-Keys" at screen 0.61, 0.78 center font ",13"
+set label "5-Key*" at screen 0.61, 0.767059 center font ",13"
 plot 'archive_data_new/p_bar_ix_07.dat' using ($1-0.235):2 w boxes ls 1 fs solid 1.0 noborder notitle, \
      '' using ($1-0.075):3                    w boxes ls 2 fs pattern 5 border notitle, \
      '' using ($1+0.085):4                    w boxes ls 3 fs pattern 4 border notitle, \
      '' using ($1+0.245):5                    w boxes ls 4 fs pattern 1 border notitle
+
+unset label
+unset object
 
 
 # ------------------------------------------------------------------
@@ -102,7 +126,7 @@ set yrange[1e-2: 1e5]
 set size 1, 0.9
 set offsets 0,0,0,0
 set key off
-set label "RW" at screen 0.86, 0.78 center font ",13"
+set label "RW" at screen 0.86, 0.767059 center font ",13"
 plot 'archive_data_new/rw_br_ai.dat' using 1:2 w l ls 1 lw 2 notitle, \
      '' using 1:3 w l ls 4 lw 2 notitle
 

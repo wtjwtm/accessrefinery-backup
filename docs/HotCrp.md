@@ -229,12 +229,12 @@ public class Main {
 }
 ```
 
-The code is included in [MCPFactoryTest.java](https://github.com/XJTU-NetVerify/accessrefinery/blob/main/accessrefinery/mcp/src/test/java/org/mcp/core/MCPFactoryTest.java), and *MCP* is imported as a Maven dependency. Running the following command automatically executes this example.
+The code is included in [MCPFactoryTest.java](https://github.com/XJTU-NetVerify/accessrefinery/blob/main/accessrefinery/mcp/src/test/java/org/iam/core/MCPFactoryTest.java), and *MCP* is imported as a Maven dependency. Running the following command automatically executes this example.
 
 ```shell
 # The execution takes about 3 minutes.
 mvn install
-mvn test -pl ./accessrefinery/mcp -Dtest=MCPFactoryTest.java#testMCPFactory
+mvn test -pl ./accessrefinery/mcp -Dtest=MCPFactoryTest#testMCPFactory
 ```
 
 Expected output:
@@ -300,7 +300,7 @@ see [AccessAnalyzerUsage.md](https://github.com/XJTU-NetVerify/accessrefinery/bl
 
 This section describes (1) how to reproduce the results in `results/`, and (2) how to reproduce to the corresponding figures, tables, and conclusions in the paper from `results/`.
 
-*We omit the results for the real-world datasets because of commercial restrictions.*
+*The real-world dataset results are not public, for commercial reasons.*
 
 ### Reproducing Archived Results
 
@@ -405,7 +405,7 @@ sh tools/clean_plotting.sh
 ```shell
 # The execution takes about 3 minutes.
 mvn install
-mvn test -pl ./accessrefinery/mcp -Dtest=MCPTest.java#testComplexSATOperations
+mvn test -pl ./accessrefinery/mcp -Dtest=MCPTest#testComplexSATOperations
 ```
 
 ```text
@@ -432,7 +432,7 @@ Expected Output:
 
 ```shell
 # Compare AccessRefinery and AWS Access Analyzer via CLI
-sh tools/accessrefinery/running_accessrefinery_miner_compare.sh
+sh tools/running_batch_compare.sh
 
 # Compare AccessRefinery and reimplemented Access Analyzer
 sh tools/accessanalyzer-reimpl/running_accessanalyzer_compare_with_refinery.sh

@@ -23,6 +23,14 @@
 
 set -e
 
+# This measurement needs the real-world corpus itself, which is not public, for
+# commercial reasons, so data/RW/ ships empty and the script cannot run as is.
+if [ ! -d data/RW/ ]; then
+  echo "data/RW/ is missing: the real-world corpus is not public, for commercial reasons." >&2
+  echo "Restore the 506 labeled policies there to run this measurement." >&2
+  exit 1
+fi
+
 # 1. Priming input: the RW corpus with the synthesized label removed.
 python3 tools/accessrefinery/make_label_free_rw.py data/RW results/RW_label_free
 

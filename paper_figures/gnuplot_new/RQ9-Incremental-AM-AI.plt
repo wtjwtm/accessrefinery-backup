@@ -1,4 +1,4 @@
-set terminal pdfcairo font "Times New Roman,13" linewidth 1 rounded fontscale 1.35 size 33.8cm, 9cm
+set terminal pdfcairo font "Times New Roman,13" linewidth 1 rounded fontscale 1.35 size 33.8cm, 8.5cm
 
 # Set background and axes styles
 set style line 80 lt rgb "#808080"
@@ -20,20 +20,30 @@ set xtics font ", 11"
 set ytics font ", 11"
 set boxwidth 0.9
 
-set bmargin screen 0.30
-set tmargin at screen 0.90
+set bmargin screen 0.258824
+set tmargin at screen 0.894118
 set rmargin screen 0.86
 
 # Output settings
 set output 'results_new/RQ9-Incremental-AM-AI.pdf'
 
-set multiplot layout 1,4 margins 0.08, 0.96, 0.31, 0.80 spacing 0.05
+# The canvas is 8.5 cm, half a centimetre shorter than the 9 cm it was, and the
+# half centimetre came off the bottom edge with nothing else: the panels keep the
+# 4.41 cm height, the fonts their size, and everything that is not below the
+# panels the height it had above the canvas' top edge, which is why the vertical
+# coordinates read as fractions of 8.5 and are no longer the round 0.31 and 0.80.
+# The x title is the one thing that moved, up by that half centimetre and so
+# towards the panels, and it keeps the 0.45 cm it leaves below itself to the
+# canvas' bottom edge, so the gap from the axis down to it is 1.84 cm instead of
+# 2.34 cm.
+
+set multiplot layout 1,4 margins 0.08, 0.96, 0.269412, 0.788235 spacing 0.05
 
 # vertical y-axis title on the far left, inside the canvas
-set label "Time (ms)" rotate by 90 at screen 0.025, 0.55 center font ",13"
+set label "Time (ms)" rotate by 90 at screen 0.025, 0.523529 center font ",13"
 
-set label "# of allow statements" at screen 0.42, 0.05 center font ",13"
-set label "The ID of datasets" at screen 0.87, 0.05 center font ",13"
+set label "# of allow statements" at screen 0.42, 0.052941 center font ",13"
+set label "The ID of datasets" at screen 0.87, 0.052941 center font ",13"
 
 set log y
 set format y "10^{%L}"
@@ -42,13 +52,20 @@ set xtics 3
 set size 1, 0.9
 set offsets 0.5,0.5,0,0
 
-# --- Panel 1 (5-Keys): show key here -> legend over 1&2 ---
-set key width -0.9 Left vertical maxrows 1 reverse samplen 1 at screen 0.40, 0.985 font ',13' spacing 1.2
-set label "5-Keys" at screen 0.125, 0.76 center font ",13"
+# --- Panel 1 (5-Key): show key here -> legend over 1&2 ---
+set key width -0.9 Left vertical maxrows 1 reverse samplen 1 at screen 0.40, 0.984118 font ',13' spacing 1.2
+set label "5-Key" at screen 0.125, 0.745882 center font ",13"
 plot 'archive_data_new/p3_05.dat' using 1:2 w lp ls 1 title 'MCILabels (original)', \
      '' using 1:3       w lp ls 2 notitle
 
-# --- Panel 2 (6-Keys) ---
+# Figure-level text is written once, not once per panel: gnuplot redraws every
+# label on each panel's plot, and each of them here sits at absolute
+# screen coordinates, so a second pass lands on top of the first and prints as
+# if the text were set in a heavier weight. The first panel draws them above;
+# the panels after it must not.
+unset label
+
+# --- Panel 2 (6-Key) ---
 set log y
 set format y "10^{%L}"
 set xrange[0: 16]
@@ -57,21 +74,25 @@ set size 1, 0.9
 set offsets 0.5,0.5,0,0
 set key off
 unset ylabel
-set label "6-Keys" at screen 0.355, 0.76 center font ",13"
+set label "6-Key" at screen 0.355, 0.745882 center font ",13"
 plot 'archive_data_new/p3_06.dat' using 1:2 w lp ls 1 notitle, \
      '' using 1:3       w lp ls 2 notitle
 
-# --- Panel 3 (7-Keys): show key here -> legend over 3&4 ---
+unset label
+
+# --- Panel 3 (5-Key*): show key here -> legend over 3&4 ---
 set log y
 set format y "10^{%L}"
 set xrange[0: 16]
 set xtics 3
 set size 1, 0.9
 set offsets 0.5,0.5,0,0
-set key width -0.9 Left vertical maxrows 1 reverse samplen 1 at screen 0.85, 0.985 font ',13' spacing 1.2
-set label "7-Keys" at screen 0.585, 0.76 center font ",13"
+set key width -0.9 Left vertical maxrows 1 reverse samplen 1 at screen 0.85, 0.984118 font ',13' spacing 1.2
+set label "5-Key*" at screen 0.585, 0.745882 center font ",13"
 plot 'archive_data_new/p3_07.dat' using 1:2 w lp ls 1 notitle, \
      '' using 1:3       w lp ls 2 title 'MCILabels (increment)'
+
+unset label
 
 # --- Panel 4 (RW): AM vs AI MCILabels (full rebuild vs incremental add-label) ---
 set log y
@@ -81,7 +102,7 @@ set xtics 0,150,450
 set size 1, 0.9
 set offsets 0,0,0,0
 set key off
-set label "RW" at screen 0.825, 0.76 center font ",13"
+set label "RW" at screen 0.825, 0.745882 center font ",13"
 plot 'archive_data_new/rw_p3.dat' using 1:2 w l ls 1 notitle, \
      '' using 1:3 w l ls 2 notitle
 

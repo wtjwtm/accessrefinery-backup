@@ -1,8 +1,7 @@
 org.batfish
 org.batfish.datamodel
-org.mcp.core
-org.mcp.sat
-org.mcp.utils
-org.mcp.variables
-org.mcp.variables.dynamics
-org.mcp.variables.statics
+org.iam.core
+org.iam.sat
+org.iam.utils
+org.iam.variables.dynamics
+org.iam.variables.statics

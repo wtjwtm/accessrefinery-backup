@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
@@ -35,7 +36,8 @@ public class MCPLabels {
     protected HashMap<String, LabelType> _domainNames;
 
     /**
-     * Domain name to set of EC indices.
+     * Domain name to set of EC indices. Published by the EC workers, so it has to
+     * be a concurrent map (see the constructor).
      */
     protected Map<String, Set<Integer>> _domainToECs;
 
@@ -46,11 +48,13 @@ public class MCPLabels {
 
     /**
      * Domain name to mapping from static variable to its EC indices.
+     * Published by the EC workers, so it has to be a concurrent map (see the constructor).
      */
     protected Map<String, Map<Label, Set<Integer>>> _domainToLabelToECs;
 
     /**
      * Domain name to EC engine (ECEngine supporting first-time and incremental updates).
+     * Published by the EC workers, so it has to be a concurrent map (see the constructor).
      */
     protected Map<String, ECEngine> _domainToStandardECs;
 
@@ -116,10 +120,18 @@ public class MCPLabels {
     public MCPLabels() {
         _domainNames = new HashMap<>();
         _domainToLabels = new HashMap<>();
-        _domainToLabelToECs = new HashMap<>();
-        _domainToStandardECs = new HashMap<>();
+        // The next three are published from the EC worker pool (processDomain) and
+        // read by the caller once pool.invokeAll() has returned, so they must be
+        // concurrent. A plain HashMap can drop an entry when two workers resize it
+        // at the same time; a domain missing from _domainToECs makes
+        // MCPFactory.updates() sum too few bits into _numBits and then reserve
+        // fewer variables than the domains it builds in the same call, which
+        // fails in BDDUtils.bitvector with "Not enough variables to create
+        // bitvector".
+        _domainToLabelToECs = new ConcurrentHashMap<>();
+        _domainToStandardECs = new ConcurrentHashMap<>();
         _domainToProcessedLabels = new HashMap<>();
-        _domainToECs = new HashMap<>();
+        _domainToECs = new ConcurrentHashMap<>();
         _domainToTrueVariable = new HashMap<>();
         _domainToObjectToLabel = new HashMap<>();
         _domainToBDDFactory = new HashMap<>();
@@ -262,8 +274,11 @@ public class MCPLabels {
 
     /**
      * Computes the ECs for a single domain (one entry of the domain-to-labels map).
-     * Each domain is stored under its own distinct key, so concurrent execution
-     * from pool workers is safe.
+     * Each domain key is handled by exactly one pool worker, so the per-domain
+     * objects it mutates (the ECEngine and that domain's processed-label set) stay
+     * confined to that worker. The maps it publishes into are shared with the other
+     * workers, which is why they are concurrent; distinct keys keep the entries
+     * themselves from being overwritten by a concurrent worker.
      */
     private void processDomain(Map.Entry<String, Set<Label>> entry) {
         String k = entry.getKey();

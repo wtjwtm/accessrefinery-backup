@@ -12,13 +12,14 @@ Command-line options:
 
 - `-r, --reduce`: Reduce the number of intents.
 - `-s, --solver <Z3/CVC5>`: Select the solver to use (Z3 or CVC5), default is Z3.
-- `-f, --file <DATA_PATH>`: Path to the input policies (JSON file or folder).
+- `-f, --file <DATA_PATH>`: Path to the input policy (a single JSON file).
+- `-c, --cover <policy_file> <findings_file>`: Check whether the findings cover the policy.
 - `-h, --help`: Show help message and exit.
 
 #### Example
 
 ```bash
-java -jar target/accessanalyzer-1.0.jar -r -s Z3 -f data/TestCLI/01_allow.json
+java -jar target/accessanalyzer-1.0.jar -r -s Z3 -f data/Correctness/11_allow_allow_equal.json
 ```
 
 Expected output:
@@ -35,7 +36,7 @@ Expected output:
 [INFO] 2026-04-10 23:08:41 : [4/5]  finish atomic predicates calculation
 ```
 
-For the file `<file_name>.json`, the tool will output a folder named `results/<file_name>.json/`, containing the following files:
+For the file `<file_name>.json` of the dataset `<dataset>`, the tool will output a folder named `result/<dataset>/<file_name>.json/`, containing the following files:
 
 - `<file_name>_<solver>_findings.json`: The mined intents in JSON format.
 - `<file_name>_<solver>_time.csv`: The time spent in mining the intents.

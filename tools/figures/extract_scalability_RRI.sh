@@ -78,6 +78,15 @@ ai_series() {
 
 process_dir "Scalability_05Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K2.dat"
 process_dir "Scalability_06Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K3.dat"
+# 7-Keys. The two reducer baselines were run on this dataset on 2026-09-28, one
+# round per policy and one hour per policy: Z3 measured the first three and timed
+# out on the fourth, CVC5 the first five and timed out on the sixth. The reducer
+# writes a row only for a policy it finishes, so those two columns hold the
+# measured prefix and the sentinel from the first timeout on - the same shape the
+# 05/06-Keys baselines have. Keep the four-column layout so the column numbers
+# mean the same thing in every K file.
+process_dir "Scalability_07Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K4.dat"
 ai_series "Scalability_05Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K2-AI.dat" "5"
 ai_series "Scalability_06Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K3-AI.dat" "5"
+ai_series "Scalability_07Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K4-AI.dat" "5"
 echo "Done extracting scalability RRI data."

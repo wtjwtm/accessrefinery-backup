@@ -11,6 +11,18 @@
 #
 # The shipped copies of these four folders are in archive_results_new/.
 #
+# The AR folder was re-taken on 2026-09-26 - same four datasets, same flags, the jar
+# built from the tree that times the reducer's single-finding shortcut - so the four
+# datasets of that one folder are from a later session than the other three, which
+# are still the 2026-09-01 run.
+#
+# The real-world dataset of that same AR folder was re-taken once more, on 2026-09-28,
+# again at 20 rounds but with the jar built from the tree that removes the reducer's
+# single-finding shortcut instead of timing it, so that a policy of at most one finding
+# is charged the reduction it actually costs rather than the ~0 ms the shortcut took.
+# The RW pair of Figure 17 is therefore one session later than the three Scalability
+# datasets of the folder; no other output of this script is affected by that re-take.
+#
 # summary.txt columns (1-based):
 #   1 NumberStatement          2 NumberMCI                   3 NumberRRI
 #   4 MCISolvingRoundAverage   5 TotalTimeAverage            6 MCILabelsTimeAverage
@@ -32,12 +44,25 @@
 #                                     MCILabelsTimeAverage (c6), AM vs AI - the EC cost
 #
 # The Scalability_* files keep summary.txt row order and number the policies 1..15.
-# The RW files are sorted by their first data column, ascending, ties in file order,
-# and number the rows 0..505; both columns of a row come from the same policy. The
-# sort uses the computed value, not its two-decimal rendering in summary.txt: two
-# policies that both print as 1.32 are still ordered by their exact sums.
+# The RW files number the rows 0..505 and sort every column on its own value, ascending,
+# so that each curve is monotone and the two curves of a panel are read as two sorted
+# distributions rather than as one policy-per-row pairing. The sort uses the computed
+# value, not its two-decimal rendering in summary.txt: policies that both print as 1.32
+# are still ordered by their exact sums.
 #
 # All outputs are CRLF, no BOM, one header line, matching the checked-in files.
+#
+# Floor on the pair files. The figures draw these files on a log y-axis whose lower
+# bound is 1e-2 ms, so a cell that the summaries print as 0.00 has no place on the
+# curve: gnuplot drops it and the line simply starts one point later. The pair files
+# below therefore render such a cell at the axis floor, 0.01, which is the smallest
+# value the axis can show. Only Figure 17 has cells of this kind, and today only on
+# the RW corpus: the policies that yield no finding at all, so the reducer is never
+# entered and neither side is timed, which leaves both sides at 0.00. The AR side of
+# a synthetic policy with a single finding used to print 0.00 the same way, the
+# reducer's shortcut having consumed no recordable time; since the AR folder was
+# re-taken on 2026-09-26 that shortcut is timed, so those cells are measurements now
+# (0.02 for policy 1 of Scalability_05Keys) and no longer need the floor.
 
 set -e
 
@@ -73,13 +98,19 @@ readcol() {
     }' "$1"
 }
 
+# fl(v) raises a cell that renders as 0.00 to the axis floor, 0.01, so that the
+# curve has a point there instead of a gap (see the note at the top).
+FLOOR='function fl(v) { return (v == "0.00") ? "0.01" : v }
+'
+
 # pair_by_row <summaryA> <specA> <summaryB> <specB> <out> : rows 1..N, both columns
 # taken from the same summary row.
 pair_by_row() {
     readcol "$1" "$2" > "$TMP/a"
     readcol "$3" "$4" > "$TMP/b"
     { printf 'Policy\tA\tB\r\n'
-      paste -d'\t' "$TMP/a" "$TMP/b" | awk '{ printf "%d\t%s\t%s\r\n", NR, $1, $2 }'
+      paste -d'\t' "$TMP/a" "$TMP/b" \
+        | awk "$FLOOR"' { printf "%d\t%s\t%s\r\n", NR, fl($1), fl($2) }'
     } > "$5"
 }
 
@@ -95,6 +126,17 @@ rawcol() {
     }' "$1"
 }
 
+# pair_sorted_each <summaryA> <specA> <summaryB> <specB> <out> : the two columns are
+# sorted on their own values, independently of each other.
+pair_sorted_each() {
+    readcol "$1" "$2" | LC_ALL=C sort -s -g > "$TMP/a"
+    readcol "$3" "$4" | LC_ALL=C sort -s -g > "$TMP/b"
+    { printf 'Policy\tA\tB\r\n'
+      paste -d'\t' "$TMP/a" "$TMP/b" \
+        | awk "$FLOOR"' { printf "%d\t%s\t%s\r\n", NR-1, fl($1), fl($2) }'
+    } > "$5"
+}
+
 # pair_sorted <summaryKey> <specKey> <summaryB> <specB> <out> : sorted by the key
 # column ascending, stable; column B comes from the same policy row.
 pair_sorted() {
@@ -104,7 +146,7 @@ pair_sorted() {
     { printf 'Policy\tA\tB\r\n'
       paste -d'\t' "$TMP/k" "$TMP/a" "$TMP/b" \
         | LC_ALL=C sort -s -g -k1,1 \
-        | awk -F'\t' '{ printf "%d\t%s\t%s\r\n", NR-1, $2, $3 }'
+        | awk -F'\t' "$FLOOR"' { printf "%d\t%s\t%s\r\n", NR-1, fl($2), fl($3) }'
     } > "$5"
 }
 
@@ -113,7 +155,7 @@ pair_by_row "$BR/Scalability_05Keys/summary.txt" 8+9 "$AR/Scalability_05Keys/sum
 pair_by_row "$BR/Scalability_06Keys/summary.txt" 8+9 "$AR/Scalability_06Keys/summary.txt" 8+9 "$OUT/p6_br_ar.dat"
 pair_by_row "$BR/Scalability_07Keys/summary.txt" 8+9 "$AR/Scalability_07Keys/summary.txt" 8+9 "$OUT/p1_07.dat"
 if [ "$HAVE_RW" = 1 ]; then
-    pair_sorted "$BR/RW/summary.txt" 8+9 "$AR/RW/summary.txt" 8+9 "$OUT/rw_p1.dat"
+    pair_sorted_each "$BR/RW/summary.txt" 8+9 "$AR/RW/summary.txt" 8+9 "$OUT/rw_p1.dat"
 fi
 
 # --- Figure 18: AR vs AM, miner (c7) ------------------------------------------
