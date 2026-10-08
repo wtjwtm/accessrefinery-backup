@@ -15,30 +15,36 @@ Moreover, the artifact includes the full implementations of *AccessRefinery* and
 
 ## Optimization Pipeline
 
-Beyond the original batch engine, this artifact implements a four-stage optimization pipeline, **BR → AR → AM → AI**, in which each stage removes the cost left by the previous one:
+Beyond the original batch engine, this artifact implements a three-stage optimization pipeline, in which each stage removes the cost left by the previous one. The three stages are the paper's **Original**, **Pruning Reducer** and **Incremental MCP**.
 
-- **BR → AR (essential-finding pre-filter, intent reducer).** A BDD prefix/suffix scan identifies the intents already covering the policy space and removes non-essential intents before reduction, so the reducer avoids solving ILP for candidates that cannot contribute a new essential finding.
-- **AR → AM (refinement DAG and BFS early-exit in the intent miner).** The miner derives, via `getRestBDD`, the residual BDD of each finding — the region it covers but none of its children do — by subtracting its children's nodes one after another (`((findingNode \ c₁) \ c₂) \ …`), so the remaining policy space is maintained locally instead of being re-materialized from the full decision tree. AM makes that reduction cheap in two ways: each child's node is built as `parentNode ∧ var(refinedKey)` along a refinement DAG rather than by re-conjoining every domain of the intent, which replaces a conjunction over all domains with a single `and` against one refinement variable; and a finding disjoint from the remaining policy space is dropped before its subtree is expanded, so the reduction is never reached for intents that cannot contribute a new finding.
-- **AM → AI (incremental EC engine).** The EC engine is replaced by an incremental one (`ECEngine`), which splits only the ECs intersecting with newly added labels rather than re-enumerating the full label set on every update. Its incremental state is shared and carried forward across policies through a single `MCPFactory` mounted on the policy model, so the structure accumulated for one policy is extended by the next instead of being rebuilt from scratch.
+| Stage | Optimization added |
+|---|---|
+| **Original** | — |
+| **Pruning Reducer** | essential-finding pre-filter in the intent reducer |
+| **Incremental MCP** | residual-BDD reduction in the intent miner, incremental EC engine and cross-policy shared `MCPFactory` |
 
-Each optimization is validated in the paper by a two-stage comparison (e.g. BR vs. AR, AR vs. AM, AM vs. AI) over the `Scalability_05/06/07Keys` datasets and the real-world `RW` dataset. The `RW` corpus is not public, for commercial reasons.
+- **Pruning Reducer (essential-finding pre-filter in the intent reducer).** A BDD prefix/suffix scan identifies the intents already covering the policy space and removes non-essential intents before reduction, so the reducer avoids solving ILP for candidates that cannot contribute a new essential finding.
+- **Residual-BDD reduction in the intent miner (refinement DAG and BFS early-exit).** The miner derives, via `getRestBDD`, the residual BDD of each finding — the region it covers but none of its children do — by subtracting its children's nodes one after another (`((findingNode \ c₁) \ c₂) \ …`), so the remaining policy space is maintained locally instead of being re-materialized from the full decision tree. The miner makes that reduction cheap in two ways: each child's node is built as `parentNode ∧ var(refinedKey)` along a refinement DAG rather than by re-conjoining every domain of the intent, which replaces a conjunction over all domains with a single `and` against one refinement variable; and a finding disjoint from the remaining policy space is dropped before its subtree is expanded, so the reduction is never reached for intents that cannot contribute a new finding. The paper presents this as the search-part optimization of the mining phase, folded into its *Incremental MCP* stage rather than measured as a stage of its own; the artifact still switches it separately, with `-Dopt.am`.
+- **Incremental MCP (incremental EC engine).** The EC engine is replaced by an incremental one (`ECEngine`), which splits only the ECs intersecting with newly added labels rather than re-enumerating the full label set on every update. Its incremental state is shared and carried forward across policies through a single `MCPFactory` mounted on the policy model, so the structure accumulated for one policy is extended by the next instead of being rebuilt from scratch.
 
-All four stages are selectable from a single build through three cumulative system properties. Each defaults to `true`, so an invocation with no switches at all is the fully optimized **AI** stage:
+Each optimization is validated in the paper by a two-stage comparison over the `Scalability_05Keys`, `Scalability_06Keys` and `Scalability_05Keys∗` datasets and the real-world `RW` dataset. The paper's figures label the third of these `5-Key*`. The `RW` corpus is not public, for commercial reasons.
 
-| Switch | Stage disabled | Optimization turned off |
-|---|---|---|
-| `-Dopt.ar=false` | AR | essential-finding pre-filter in the intent reducer |
-| `-Dopt.am=false` | AM | refinement-DAG node construction and BFS early-exit in the intent miner |
-| `-Dopt.ai=false` | AI | incremental EC engine and cross-policy shared `MCPFactory` |
+All three stages are selectable from a single build through three cumulative system properties. Each defaults to `true`, so an invocation with no switches at all is the fully optimized **Incremental MCP** stage:
 
-The switches must precede `-jar`, and they compose: `-Dopt.am=false -Dopt.ai=false` gives **AR**, all three off gives **BR**. `tools/accessrefinery/running_bdd_reducer_20rs.sh` runs all four stages this way. Turning a switch off restores the pre-optimization algorithm, not the archived numbers.
+| Switch | Optimization turned off |
+|---|---|
+| `-Dopt.ar=false` | the *Pruning Reducer* (essential-finding pre-filter in the intent reducer) |
+| `-Dopt.am=false` | the refinement-DAG node construction and BFS early-exit in the intent miner |
+| `-Dopt.ai=false` | the *Incremental MCP* (incremental EC engine and cross-policy shared `MCPFactory`) |
+
+The switches must precede `-jar`, and they compose: all three off gives **Original**, `-Dopt.am=false -Dopt.ai=false` alone gives **Pruning Reducer**, and the default (no switch at all) gives **Incremental MCP**. `tools/accessrefinery/running_bdd_reducer_20rs.sh` runs those three stages this way. Turning a switch off restores the pre-optimization algorithm, not the archived numbers.
 
 ## Getting AccessRefinery
 
-You can download the AccessRefinery FSE 2026 artifact from the [GitHub repository](https://github.com/wtjwtm/accessrefinery.git):
+You can download the AccessRefinery FSE 2026 artifact from the [GitHub repository](https://github.com/XJTU-NetVerify/accessrefinery.git):
 
 ```shell
-git clone https://github.com/wtjwtm/accessrefinery.git
+git clone https://github.com/XJTU-NetVerify/accessrefinery.git
 ```
 
 ## Installing AccessRefinery
@@ -52,7 +58,7 @@ see [REQUIREMENTS.md](https://github.com/XJTU-NetVerify/accessrefinery/blob/main
 Since *AWS Access Analyzer* is not open source and provides only a Command-Line Interface (CLI), we also reimplement *Access Analyzer* for evaluation.
 
 - `data/`: Dataset for experiments.
-  - `Scalability_05Keys/`, `Scalability_06Keys/`, `Scalability_07Keys/`: Synthetic scalability sets of 15 policies each, used for the statement-count sweeps.
+  - `Scalability_05Keys/`, `Scalability_06Keys/`, `Scalability_05Keys∗/`: Synthetic scalability sets of 15 policies each, used for the statement-count sweeps. These are the paper's `5-Key`, `6-Key` and `5-Key*` datasets, in that order.
   - `RW/`: The real-world corpus of 506 policies, in the labeled version in which the synthesized label `s3:::886499mir` is added to every statement. **Not public**, for commercial reasons, so the folder is absent and the run scripts skip it.
   - `Correctness/`: Correctness set used to check that the mined intents cover the policies.
 - `accessrefinery/`: Implementation of *AccessRefinery*.
@@ -69,15 +75,16 @@ Since *AWS Access Analyzer* is not open source and provides only a Command-Line 
   - `accessrefinery-javadoc`: Javadoc for *AccessRefinery*.
 - `paper_figures/`: Scripts and inputs for plotting the figures in the paper.
   - `gnuplot/`, `archive_data/`, `results/`: the figures of the original submission.
-  - `gnuplot_new/`, `archive_data_new/`, `results_new/`: the figures of the extension experiment, the BR → AR → AM → AI optimization pipeline — the four that appear in the paper (Figures 16-19) and four supporting variants that do not.
+  - `gnuplot_new/`, `archive_data_new/`, `results_new/`: the figures of the extension experiment, the three-stage optimization pipeline — the four figures that appear in the paper (Figures 18-21).
 - `archive_results/`: Archived experimental results of the experiments reported in the original submission.
-- `archive_results_new/`: Archived experimental results of the extension experiment (the BR → AR → AM → AI optimization pipeline), one folder per stage:
-  - `accessrefinery_bdd_reducer_20rs/`: BR (the original stage).
-  - `accessrefinery_bdd_reducer_AR_20rs/`: AR.
-  - `accessrefinery_bdd_reducer_AM_20rs/`: AM.
-  - `accessrefinery_bdd_reducer_AI_20rs/`: AI.
+- `archive_results_new/`: Archived experimental results of the extension experiment (the three-stage optimization pipeline), one folder per stage and per round count:
+  - `accessrefinery_bdd_reducer_Original_20rs/`: **Original** (all three switches off), 20 rounds.
+  - `accessrefinery_bdd_reducer_PruningReducer_20rs/`: **Pruning Reducer**, 20 rounds.
+  - `accessrefinery_bdd_reducer_IncrementalMCP_20rs/`: **Incremental MCP** (the default build), 20 rounds.
+  - `accessrefinery_bdd_reducer_Original_10rs/`, `..._PruningReducer_10rs/`, `..._IncrementalMCP_10rs/`: the same three stages of the 10-round re-run behind Figures 18, 20 and 21.
+  - `accessrefinery_bdd_reducer_MiningOptimized_10rs/`: the 10-round `MiningOptimized` measurement configuration (`-Dopt.ar=false -Dopt.am=true -Dopt.ai=false`) behind Figure 21; it is not one of the three pipeline stages.
 
-  Each stage folder holds the dataset folders `Scalability_05Keys/`, `Scalability_06Keys/`, `Scalability_07Keys/` and `RW/`; each of the three scalability folders holds the per-policy `*_result.json`, `*_time.csv` and the aggregated `summary.txt`, and contains 15 policies each. `RW/` covers the 506 policies of the real-world corpus, which is not public for commercial reasons. All four stages were run with `--round 20` (`tools/accessrefinery/running_bdd_reducer_20rs.sh`). `summary.txt` has a header row followed by one row per policy, with the columns `NumberStatement, NumberMCI, NumberRRI, MCISolvingRoundAverage, TotalTimeAverage, MCILabelsTimeAverage, MCIOperationsTimeAverage, RRIOperationsTimeAverage, RRIILPSolvingTimeAverage` (times in ms).
+  All seven folders hold the dataset folders `Scalability_05Keys/`, `Scalability_06Keys/` and `Scalability_05Keys∗/`, 15 policies each, with an aggregated `summary.txt` and the per-policy outputs of the run beside it, `01_allow_result.json` and `01_allow_time.csv`. The `_20rs` stages were run with `--round 20` (`tools/accessrefinery/running_bdd_reducer_20rs.sh`) and the `_10rs` ones with `--round 10`. `summary.txt` has a header row followed by one row per policy, with the columns `NumberStatement, NumberMCI, NumberRRI, MCISolvingRoundAverage, TotalTimeAverage, MCILabelsTimeAverage, MCIOperationsTimeAverage, RRIOperationsTimeAverage, RRIILPSolvingTimeAverage` (times in ms). The real-world corpus (506 policies) is not public for commercial reasons: neither its policies nor these per-stage summaries are released, only the plotting data extracted from them, which ships under `paper_figures/archive_data/` and `paper_figures/archive_data_new/`.
 
 Additionally, the `mcp` and `refinery` directories include Maven test cases that can be used to verify our code's correctness and to help developers run tests.
 
@@ -289,7 +296,7 @@ This section describes (1) how to reproduce the results in `results/`, and (2) h
 
 - **Reproducing AccessRefinery Results**
 
-`archive_results/` and `archive_results_new/` hold the immutable results shipped with the artifact — the first for the experiments of the original submission, the second for the extension experiment (the four-stage optimization pipeline); `results/` is the working directory that the experiment scripts write to and that the extraction scripts read from. Every experiment below can therefore either be run or skipped by copying the corresponding archive folder into `results/`.
+`archive_results/` and `archive_results_new/` hold the immutable results shipped with the artifact — the first for the experiments of the original submission, the second for the extension experiment (the three-stage optimization pipeline); `results/` is the working directory that the experiment scripts write to and that the extraction scripts read from. Every experiment below can therefore either be run or skipped by copying the corresponding archive folder into `results/`.
 
 Running *AccessRefinery* with MiniSAT backend takes a long time. You can skip it by running the following commands to directly reuse the data in the `archive_results/` directory.
 
@@ -302,9 +309,14 @@ cp -r archive_results/accessrefinery_sat_*rs results/
 mkdir -p results/ 
 cp -r archive_results/accessrefinery_bdd_*rs results/
 
-# skip running the four-stage optimization pipeline (BR -> AR -> AM -> AI)
+# skip running the three-stage optimization pipeline (Original -> Pruning
+# Reducer -> Incremental MCP): the 10-round re-run behind Figures 18, 20 and 21,
+# and the 20-round run behind Figure 19
 mkdir -p results/
-for stage in "" _AR _AM _AI; do
+for stage in _Original _PruningReducer _IncrementalMCP _MiningOptimized; do
+  cp -r archive_results_new/accessrefinery_bdd_reducer${stage}_10rs results/
+done
+for stage in _Original _PruningReducer _IncrementalMCP; do
   cp -r archive_results_new/accessrefinery_bdd_reducer${stage}_20rs results/
 done
 ```
@@ -324,7 +336,7 @@ sh tools/accessrefinery/running_sat_miner.sh
 # The execution takes >12 hours.
 sh tools/accessrefinery/running_sat_reducer.sh
 
-# The four-stage optimization pipeline, 20 rounds: one build, four cumulative
+# The three-stage optimization pipeline, 20 rounds: one build, three cumulative
 # switch configurations, each archived under its own folder name.
 sh tools/accessrefinery/running_bdd_reducer_20rs.sh
 ```
@@ -337,7 +349,7 @@ Expected Output:
   - `accessrefinery_sat_miner_10rs/`: intent mining using MiniSAT.
   - `accessrefinery_bdd_reducer_10rs/`: intent mining and reduction using JavaBDD.
   - `accessrefinery_sat_reducer_3rs/`: intent mining and reduction using MiniSAT (limited to 3 rounds due to slow execution).
-  - `accessrefinery_bdd_reducer_20rs/`, `accessrefinery_bdd_reducer_AR_20rs/`, `accessrefinery_bdd_reducer_AM_20rs/`, `accessrefinery_bdd_reducer_AI_20rs/`: intent mining and reduction at each stage of the four-stage pipeline (BR → AR → AM → AI), 20 rounds.
+  - `accessrefinery_bdd_reducer_Original_20rs/`, `accessrefinery_bdd_reducer_PruningReducer_20rs/`, `accessrefinery_bdd_reducer_IncrementalMCP_20rs/`: intent mining and reduction at each stage of the three-stage pipeline (Original → Pruning Reducer → Incremental MCP), 20 rounds.
 
 - **Reproducing Reimplemented Access Analyzer Results**
 
@@ -402,7 +414,7 @@ sh tools/clean_plotting.sh
 
 This clears `paper_figures/results/` and `paper_figures/results_new/` only. The plotting inputs in `paper_figures/archive_data/` and `paper_figures/archive_data_new/` are never touched — three of them cannot be regenerated from anything in the artifact.
 
-#### Verifying Correctness of MCP (Section 6.1)
+#### Verifying Correctness of MCP (RQ1)
 
 ```shell
 # The complete workflow (build plus test) takes about 3 minutes.
@@ -419,7 +431,7 @@ mvn test -pl ./accessrefinery/mcp -Dtest=MCPTest#testComplexSATOperations
 [INFO] ------------------------------------------------------------------------
 ```
 
-#### Plotting Figure 10（Section 6.1）
+#### Plotting Figure 12 (RQ1)
 
 ```shell
 bash ./tools/figures/extract_correctness_synthetic.sh
@@ -430,7 +442,7 @@ Expected Output:
 
 - `paper_figures/results/RQ1-Experiment-Correctness.pdf`
 
-#### Verifying Correctness of Intent Miner (Section 6.1)
+#### Verifying Correctness of Intent Miner (RQ1)
 
 ```shell
 # Compare AccessRefinery and AWS Access Analyzer via CLI
@@ -446,7 +458,7 @@ Expected Output:
   - `accessrefinery_miner_compare_results/*.log`
   - `accessanalyzer_miner_compare_results_with_refinery/*.log`
 
-#### Verifying Correctness of Intent Reducer (Section 6.1)
+#### Verifying Correctness of Intent Reducer (RQ1)
 
 ```shell
 # The execution takes about 5 hour.
@@ -460,7 +472,7 @@ Expected Output:
   - `Scalability_05Keys/*_coverage.log`
   - `Scalability_06Keys/*_coverage.log`
 
-#### Plotting Figure 11 (Section 6.2)
+#### Plotting Figure 13 (RQ2)
 
 ```shell
 bash tools/figures/extract_effectiveness_synthetic.sh
@@ -471,7 +483,7 @@ Expected Output:
 
 - `paper_figures/results/RQ2-Experiment-Effectiveness.pdf`
 
-#### Plotting Figure 12 (Section 6.3)
+#### Plotting Figure 14 (RQ3)
 
 ```shell
 bash tools/figures/extract_scalability_MCI.sh
@@ -482,7 +494,7 @@ Expected Output:
 
 - `paper_figures/results/RQ3-Experiment-Scalability-Mining.pdf`
 
-#### Plotting Figure 13 (Section 6.3)
+#### Plotting Figure 15 (RQ3)
 
 ```shell
 bash tools/figures/extract_scalability_RRI.sh
@@ -493,11 +505,11 @@ Expected Output:
 
 - `paper_figures/results/RQ3-Experiment-Scalability-Reducing.pdf`
 
-#### Plotting Figure 14 (Section 6.4)
+#### Plotting Figure 16 (RQ4)
 
 The real-world `RW` data this figure reports on is not public, for commercial reasons, so this reproduction is not available.
 
-#### Plotting Figure 15 (Section 6.5)
+#### Plotting Figure 17 (RQ5)
 
 ```shell
 bash tools/figures/extract_scalability_RRI.sh
@@ -508,7 +520,7 @@ Expected Output:
 
 - `paper_figures/results/RQ5-Experiment-MicroBenchmark-Reducing.pdf`
 
-#### Plotting Table 2 (Section 6.6)
+#### Plotting Table 2 (RQ6)
 
 ```shell
 bash tools/figures/generate_table.sh
@@ -527,38 +539,38 @@ Expected Output:
 
 #### Plotting the Optimization Pipeline Figures (Extension Experiment)
 
-The four-stage optimization pipeline (BR → AR → AM → AI) is the extension experiment of this revision. Its data lives apart from the rest of the artifact: `paper_figures/archive_data_new/`, extracted from the per-policy `summary.txt` of the corresponding stage folders under `archive_results_new/` (`accessrefinery_bdd_reducer_20rs/` for BR, `..._AR_20rs/`, `..._AM_20rs/`, `..._AI_20rs/`), with the `.plt` files in `paper_figures/gnuplot_new/` and the rendered PDFs in `paper_figures/results_new/`.
+The three-stage optimization pipeline (Original → Pruning Reducer → Incremental MCP) is the extension experiment of this revision. Its data lives apart from the rest of the artifact: `paper_figures/archive_data_new/`, extracted from the per-policy `summary.txt` of the corresponding stage folders under `archive_results_new/` (`accessrefinery_bdd_reducer_Original_20rs/`, `..._PruningReducer_20rs/` and `..._IncrementalMCP_20rs/`), with the `.plt` files in `paper_figures/gnuplot_new/` and the rendered PDFs in `paper_figures/results_new/`.
 
-The four supporting variants listed below read a second data set instead, `paper_figures/archive_data_new/rerun10b/`, which `tools/figures/extract_optimization_pipeline_10b.sh` extracts from the per-stage `summary.txt` of the 10-round re-run under `results/rerun10b/`.
+Three of the four figures below read a second data set instead, `paper_figures/archive_data_new/10rs/`, which `tools/figures/extract_optimization_pipeline_10rs.sh` extracts from the per-stage `summary.txt` of the 10-round re-run under `results/accessrefinery_bdd_reducer_*_10rs/`; the remaining one, Figure 19, reads `archive_data_new/` itself, which `tools/figures/extract_optimization_pipeline.sh` extracts from the 20-round stage folders under `results/`.
 
-The real-world `RW` corpus is not public, for commercial reasons, so the pipeline cannot be re-run over it; this reproduction covers the `05`, `06` and `07` datasets.
+The real-world `RW` corpus is not public, for commercial reasons, so the pipeline cannot be re-run over it; this reproduction covers the `05Keys`, `06Keys` and `05Keys∗` datasets.
 
 ```shell
 cd paper_figures
 
-# BR vs AR (essential-finding pre-filter in the intent reducer)
-gnuplot gnuplot_new/RQ7-ReducingPruning-BR-AR.plt
+# Original vs Pruning Reducer (essential-finding pre-filter in the intent reducer)
+gnuplot gnuplot_new/RQ8-ReducingPruning-Original-PruningReducer.plt
 
-# AR vs AM (BFS early-exit and refinement DAG in the intent miner)
-gnuplot gnuplot_new/RQ8-MiningPruning-AR-AM.plt
+# Pruning Reducer vs Incremental MCP (incremental EC engine, shared MCPFactory)
+gnuplot gnuplot_new/RQ8-MiningPruning-PruningReducer-IncrementalMCP.plt
 
-# AM vs AI (incremental EC engine)
-gnuplot gnuplot_new/RQ9-Incremental-AM-AI.plt
+# All three stages, total execution time
+gnuplot gnuplot_new/RQ7-Optimization-Overview-Bars-3Stage.plt
 
-# All four stages, total execution time
-gnuplot gnuplot_new/Optimization-Overview-Bars.plt
+# Share of each phase's window spent on the encoding side
+gnuplot gnuplot_new/RQ9-Optimization-Overview-Bars-Percentage.plt
 ```
 
 Expected Output (in `paper_figures/results_new/`):
 
-- `Optimization-Overview-Bars.pdf`: total execution time of all four stages (Figure 16).
-- `RQ7-ReducingPruning-BR-AR.pdf`: BR vs. AR on `5-Keys`/`6-Keys`/`7-Keys`/`RW` (Figure 17, all four panels).
-- `RQ8-MiningPruning-AR-AM.pdf`: AR vs. AM (Figure 18).
-- `RQ9-Incremental-AM-AI.pdf`: AM vs. AI (Figure 19).
+- `RQ7-Optimization-Overview-Bars-3Stage.pdf`: total execution time of all three stages, i.e. the paper's **Figure 18** (RQ7).
+- `RQ8-ReducingPruning-Original-PruningReducer.pdf`: the intent reducer with and without the *Pruning Reducer*, on `5-Key`/`6-Key`/`5-Key*`/`RW`, i.e. the paper's **Figure 19**, the first of RQ8's two figures (all four panels).
+- `RQ8-MiningPruning-PruningReducer-IncrementalMCP.pdf`: the intent mining time per policy of the *Pruning Reducer* stage and of the *Incremental MCP* stage, on `5-Key`/`6-Key`/`5-Key*`/`RW`, i.e. the paper's **Figure 20**, the second of RQ8's two figures.
+- `RQ9-Optimization-Overview-Bars-Percentage.pdf`: the share of each phase's window spent on the encoding side, i.e. the paper's **Figure 21** (RQ9). It reads its own configuration, labelled `MiningOptimized` under `results/accessrefinery_bdd_reducer_MiningOptimized_10rs/`.
 
-`paper_figures/draw.sh` also renders four supporting variants of Figures 16 and 18 — `Optimization-Overview-Bars-3Stage.pdf`, `Optimization-Overview-Bars-Percentage.pdf`, `Optimization-Overview-Bars-Segmented.pdf` and `RQ8-MiningPruning-AR-AI.pdf` — which are kept in the artifact but are not printed in the paper.
+All four figures above are the ones the paper prints. Two further renderings of the first of them were withdrawn from this revision: `Optimization-Overview-Bars.pdf`, the same three stages drawn from the 20-round archive (`paper_figures/archive_data_new/p_bar_ix_*.dat` and `rw_bar_ix.dat`) rather than from the 10-round re-run, and `Optimization-Overview-Bars-Segmented.pdf`, which splits each stage's bar into its mining and reducing parts and which the paper never printed. Their plotting data stays checked in — `rw_bar_ix.dat` needs the withheld real-world corpus and could not be regenerated.
 
-Preview images of the four paper figures are kept in `docs/figures/` as `figure16.png`--`figure19.png`. Each of the four has a real-world `RW` panel of 506 datasets in addition to the three synthetic ones.
+Preview images of the paper figures are kept in `docs/figures/` as `figure18.png`--`figure21.png`. Figures 18-20 each carry a real-world `RW` panel of 506 policies in addition to the three synthetic ones.
 
 ## For Developers
 

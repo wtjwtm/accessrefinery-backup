@@ -1,0 +1,6 @@
+NumberStatement	NumberMCI	NumberRRI	MCISolvingRoundAverage	TotalTimeAverage	MCILabelsTimeAverage	MCIOperationsTimeAverage	RRIOperationsTimeAverage	RRIILPSolvingTimeAverage
+1	1	1	16	52.06	37.38	12.56	0.80	1.32
+2	4	2	36	118.39	82.42	20.42	13.93	1.62
+3	9	3	64	462.72	166.47	44.93	249.35	1.97
+4	16	4	100	10682.04	264.74	81.32	10333.19	2.79
+5	25	5	144	306640.64	253.36	111.53	306270.96	4.78

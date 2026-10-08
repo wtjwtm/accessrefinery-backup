@@ -20,7 +20,7 @@ set xtics font ", 13"
 set xlabel "Dataset ID"
 set log y
 set format y "10^{%L}"
-# Lower bound is 0.05 ms, not 0.5: the AI series of the RRI panel is a component
+# Lower bound is 0.05 ms, not 0.5: the Incremental MCP series of the RRI panel is a component
 # (c8+c9, med 0.20 ms), which a 0.5 ms floor would clip away entirely.
 set yrange [0.05:*]
 set xrange [0:520]
@@ -45,7 +45,7 @@ plot 'archive_data/Experiment-Scalability-MCI-RealWorld.dat' \
      using ($0+1):($1*1000) smooth cumulative with lines ls 1 title 'Access Analyzer(Z3)', \
      '' using ($0+1):($2*1000) smooth cumulative with lines ls 2 title 'Access Analyzer(CVC5)', \
      '' using ($0+1):($4*1000) smooth cumulative with lines ls 3 title 'AccessRefinery(W/O All)', \
-     'archive_data/Experiment-Scalability-MCI-RealWorld-AI.dat' using ($0+1):($1*1000) smooth cumulative with lines ls 7 title 'AccessRefinery(W/ All)'
+     'archive_data/Experiment-Scalability-MCI-RealWorld-WAll.dat' using ($0+1):($1*1000) smooth cumulative with lines ls 7 title 'AccessRefinery(W/ All)'
 
 # Plot the second subplot: RRI experiment results
 unset ylabel
@@ -54,4 +54,4 @@ plot 'archive_data/Experiment-Scalability-RRI-RealWorld.dat' \
      using ($0+1):($1*1000) smooth cumulative with lines ls 1 title 'Baseline(Z3)', \
      '' using ($0+1):($2*1000) smooth cumulative with lines ls 2 title 'Baseline(CVC5)', \
      '' using ($0+1):($4*1000) smooth cumulative with lines ls 3 title 'AccessRefinery(W/O All)', \
-     'archive_data/Experiment-Scalability-RRI-RealWorld-AI.dat' using ($0+1):($1*1000) smooth cumulative with lines ls 7 title 'AccessRefinery(W/ All)'
+     'archive_data/Experiment-Scalability-RRI-RealWorld-WAll.dat' using ($0+1):($1*1000) smooth cumulative with lines ls 7 title 'AccessRefinery(W/ All)'

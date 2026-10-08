@@ -50,19 +50,19 @@ process_dir() {
 }
 
 # The `AccessRefinery(W/ All)` series of Figure 13: the same reduction work with
-# all three optimizations on, from the AI stage of the four-stage pipeline. The
-# AI stage's TotalTimeAverage is the whole run (mine plus reduce), which is the
+# all three optimizations on, from the Incremental MCP stage of the pipeline. The
+# Incremental MCP stage's TotalTimeAverage is the whole run (mine plus reduce), which is the
 # same quantity as the `accessrefinery_bdd_reducer_10rs` column above.
 #
 # This is written to its own single-column file rather than appended as another
 # column of the `.dat` above, so that the columns of that file stay as they are.
-ai_series() {
+wall_series() {
     local dir_name=$1
     local out_file=$2
     local spec=$3
-    local src="results/accessrefinery_bdd_reducer_AI_20rs/${dir_name}/summary.txt"
+    local src="results/accessrefinery_bdd_reducer_IncrementalMCP_20rs/${dir_name}/summary.txt"
     local vals=()
-    [ -f "$src" ] || echo "Warning: $src not found; the AI series will be all timeout values" >&2
+    [ -f "$src" ] || echo "Warning: $src not found; the W/ All series will be all timeout values" >&2
     if [ -f "$src" ]; then
         mapfile -t vals < <(awk -v spec="$spec" 'NR>1 {
             n = split(spec, p, "+"); s = 0
@@ -78,15 +78,15 @@ ai_series() {
 
 process_dir "Scalability_05Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K2.dat"
 process_dir "Scalability_06Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K3.dat"
-# 7-Keys. The two reducer baselines were run on this dataset on 2026-09-28, one
+# 5-Key*. The two reducer baselines were run on this dataset on 2026-09-28, one
 # round per policy and one hour per policy: Z3 measured the first three and timed
 # out on the fourth, CVC5 the first five and timed out on the sixth. The reducer
 # writes a row only for a policy it finishes, so those two columns hold the
 # measured prefix and the sentinel from the first timeout on - the same shape the
 # 05/06-Keys baselines have. Keep the four-column layout so the column numbers
 # mean the same thing in every K file.
-process_dir "Scalability_07Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K4.dat"
-ai_series "Scalability_05Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K2-AI.dat" "5"
-ai_series "Scalability_06Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K3-AI.dat" "5"
-ai_series "Scalability_07Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K4-AI.dat" "5"
+process_dir "Scalability_05Keys∗" "paper_figures/archive_data/Experiment-Scalability-RRI-K4.dat"
+wall_series "Scalability_05Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K2-WAll.dat" "5"
+wall_series "Scalability_06Keys" "paper_figures/archive_data/Experiment-Scalability-RRI-K3-WAll.dat" "5"
+wall_series "Scalability_05Keys∗" "paper_figures/archive_data/Experiment-Scalability-RRI-K4-WAll.dat" "5"
 echo "Done extracting scalability RRI data."

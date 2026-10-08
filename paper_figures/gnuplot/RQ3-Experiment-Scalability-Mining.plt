@@ -116,7 +116,7 @@ set offsets 0.5,0.5,0,0
 plot 'archive_data/Experiment-Scalability-MCI-K2.dat' using ($0+1):2 w lp ls 1 title 'Access Analyzer(Z3)', \
      '' using ($0+1):3  w lp ls 2 title 'Access Analyzer(CVC5)', \
      '' using ($0+1):5  w lp ls 3 title 'AccessRefinery(W/O All)', \
-     'archive_data/Experiment-Scalability-MCI-K2-AI.dat' using ($0+1):1 w lp ls 7 title 'AccessRefinery(W/ All)'
+     'archive_data/Experiment-Scalability-MCI-K2-WAll.dat' using ($0+1):1 w lp ls 7 title 'AccessRefinery(W/ All)'
 
 # Figure-level text is written once, not once per panel: gnuplot redraws every
 # label and every key on each panel's plot, and each of them here sits at absolute
@@ -137,7 +137,7 @@ set offsets 0.5,0.5,0,0
 plot 'archive_data/Experiment-Scalability-MCI-K3.dat' using ($0+1):2 w lp ls 1 title 'Access Analyzer(Z3)', \
      '' using ($0+1):3  w lp ls 2 title 'Access Analyzer(CVC5)', \
      '' using ($0+1):5  w lp ls 3 title 'AccessRefinery(W/O All)', \
-     'archive_data/Experiment-Scalability-MCI-K3-AI.dat' using ($0+1):1 w lp ls 7 title 'AccessRefinery(W/ All)'
+     'archive_data/Experiment-Scalability-MCI-K3-WAll.dat' using ($0+1):1 w lp ls 7 title 'AccessRefinery(W/ All)'
 
 unset label
 unset key
@@ -153,6 +153,6 @@ set offsets 0.5,0.5,0,0
 plot 'archive_data/Experiment-Scalability-MCI-K4.dat' using ($0+1):2 w lp ls 1 title 'Access Analyzer(Z3)', \
      '' using ($0+1):3  w lp ls 2 title 'Access Analyzer(CVC5)', \
      '' using ($0+1):5  w lp ls 3 title 'AccessRefinery(W/O All)', \
-     'archive_data/Experiment-Scalability-MCI-K4-AI.dat' using ($0+1):1 w lp ls 7 title 'AccessRefinery(W/ All)'
+     'archive_data/Experiment-Scalability-MCI-K4-WAll.dat' using ($0+1):1 w lp ls 7 title 'AccessRefinery(W/ All)'
 
 unset multiplot

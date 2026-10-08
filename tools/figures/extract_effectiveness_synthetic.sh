@@ -1,6 +1,6 @@
 #!/bin/bash
 # Generate plot data for Experiment-Effectiveness-Synthetic-K2.dat, K3.dat and K4.dat
-# (5-Keys, 6-Keys and 7-Keys respectively)
+# (5-Keys, 6-Keys and 5-Key* respectively)
 
 # Create output directory if it doesn't exist
 mkdir -p paper_figures/archive_data/
@@ -30,8 +30,8 @@ else
     echo "Warning: File $INPUT_K3 not found"
 fi
 
-# Process K4 data (Scalability_07Keys)
-INPUT_K4="results/accessrefinery_bdd_reducer_10rs/Scalability_07Keys/summary.txt"
+# Process K4 data (Scalability_05Keys∗)
+INPUT_K4="results/accessrefinery_bdd_reducer_10rs/Scalability_05Keys∗/summary.txt"
 OUTPUT_K4="paper_figures/archive_data/Experiment-Effectiveness-Synthetic-K4.dat"
 
 if [ -f "$INPUT_K4" ]; then

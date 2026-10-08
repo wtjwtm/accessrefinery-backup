@@ -12,7 +12,7 @@ trim0() {
 
 #
 # The third argument names where the two AccessRefinery columns come from, since
-# 7-Keys has no standalone miner run: "miner" (the default, and what 05-/06-Keys
+# 5-Key* has no standalone miner run: "miner" (the default, and what 05-/06-Keys
 # use) reads MCILabelsTimeAverage + MCIOperationsTimeAverage off the two refinery
 # miner summaries, "reducer" reads the same two columns off the two refinery
 # reducer summaries, which mine and reduce in one pass and so have the same
@@ -79,7 +79,7 @@ process_dir() {
 }
 
 # The `AccessRefinery(W/ All)` series of Figure 12: the same mining work with all
-# three optimizations on. It comes from the AI stage of the four-stage pipeline,
+# three optimizations on. It comes from the Incremental MCP stage of the pipeline,
 # whose runs reduce as well as mine. The reduction is the last two columns of
 # that summary (RRIOperationsTimeAverage + RRIILPSolvingTimeAverage), so the sum
 # of the two before them (MCILabelsTimeAverage + MCIOperationsTimeAverage) is the
@@ -87,13 +87,13 @@ process_dir() {
 #
 # This is written to its own single-column file rather than appended as another
 # column of the `.dat` above, so that the columns of that file stay as they are.
-ai_series() {
+wall_series() {
     local dir_name=$1
     local out_file=$2
     local spec=$3
-    local src="results/accessrefinery_bdd_reducer_AI_20rs/${dir_name}/summary.txt"
+    local src="results/accessrefinery_bdd_reducer_IncrementalMCP_20rs/${dir_name}/summary.txt"
     local vals=()
-    [ -f "$src" ] || echo "Warning: $src not found; the AI series will be all timeout values" >&2
+    [ -f "$src" ] || echo "Warning: $src not found; the W/ All series will be all timeout values" >&2
     if [ -f "$src" ]; then
         mapfile -t vals < <(awk -v spec="$spec" 'NR>1 {
             n = split(spec, p, "+"); s = 0
@@ -107,7 +107,7 @@ ai_series() {
     done
 }
 
-# 7-Keys. Its two Access Analyzer mining baselines were run on 2026-09-28, one
+# 5-Key*. Its two Access Analyzer mining baselines were run on 2026-09-28, one
 # hour per policy and one JVM per policy (tools/accessrefinery/../aa08_miner.sh
 # on the experiment host): Z3 finished the first four policies and timed out on
 # the fifth, CVC5 the first fourteen and timed out on the fifteenth, and the
@@ -117,8 +117,8 @@ ai_series() {
 # come from the SAT and BDD reducer summaries, which mine and reduce in one pass.
 process_dir "Scalability_05Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K2.dat"
 process_dir "Scalability_06Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K3.dat"
-process_dir "Scalability_07Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K4.dat" reducer
-ai_series "Scalability_05Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K2-AI.dat" "6+7"
-ai_series "Scalability_06Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K3-AI.dat" "6+7"
-ai_series "Scalability_07Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K4-AI.dat" "6+7"
+process_dir "Scalability_05Keys∗" "paper_figures/archive_data/Experiment-Scalability-MCI-K4.dat" reducer
+wall_series "Scalability_05Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K2-WAll.dat" "6+7"
+wall_series "Scalability_06Keys" "paper_figures/archive_data/Experiment-Scalability-MCI-K3-WAll.dat" "6+7"
+wall_series "Scalability_05Keys∗" "paper_figures/archive_data/Experiment-Scalability-MCI-K4-WAll.dat" "6+7"
 echo "Done extracting scalability MCI data."

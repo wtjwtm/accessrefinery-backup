@@ -1,27 +1,26 @@
 #!/bin/bash
-# Regenerate the plotting data of the four optimization-pipeline figures
-# (Figures 16-19) from the per-policy summary.txt of the four stage archives.
+# Regenerate the plotting data of the optimization-pipeline figures that read the
+# 20-round stage archives, from their per-policy summary.txt.
 #
-# Stage folders under results/, one per stage of the BR -> AR -> AM -> AI pipeline:
+# Stage folders under results/, one per stage of the pipeline:
 #
-#   accessrefinery_bdd_reducer_20rs/     BR  (-Dopt.ar=false -Dopt.am=false -Dopt.ai=false)
-#   accessrefinery_bdd_reducer_AR_20rs/  AR  (-Dopt.am=false -Dopt.ai=false)
-#   accessrefinery_bdd_reducer_AM_20rs/  AM  (-Dopt.ai=false)
-#   accessrefinery_bdd_reducer_AI_20rs/  AI  (defaults)
+#   accessrefinery_bdd_reducer_Original_20rs/        Original         (-Dopt.ar=false -Dopt.am=false -Dopt.ai=false)
+#   accessrefinery_bdd_reducer_PruningReducer_20rs/  Pruning Reducer  (-Dopt.am=false -Dopt.ai=false)
+#   accessrefinery_bdd_reducer_IncrementalMCP_20rs/  Incremental MCP  (defaults)
 #
-# The shipped copies of these four folders are in archive_results_new/.
+# The shipped copies of these three folders are in archive_results_new/.
 #
-# The AR folder was re-taken on 2026-09-26 - same four datasets, same flags, the jar
-# built from the tree that times the reducer's single-finding shortcut - so the four
-# datasets of that one folder are from a later session than the other three, which
-# are still the 2026-09-01 run.
+# The Pruning Reducer folder was re-taken on 2026-09-26 - same four datasets, same flags,
+# the jar built from the tree that times the reducer's single-finding shortcut - so its four
+# datasets are from a later session than the other two, which are still the 2026-09-01 run.
 #
-# The real-world dataset of that same AR folder was re-taken once more, on 2026-09-28,
+# The real-world dataset of that same folder was re-taken once more, on 2026-09-28,
 # again at 20 rounds but with the jar built from the tree that removes the reducer's
 # single-finding shortcut instead of timing it, so that a policy of at most one finding
 # is charged the reduction it actually costs rather than the ~0 ms the shortcut took.
-# The RW pair of Figure 17 is therefore one session later than the three Scalability
-# datasets of the folder; no other output of this script is affected by that re-take.
+# The RW pair of RQ8-ReducingPruning-Original-PruningReducer is therefore one session
+# later than the three Scalability datasets of the folder; no other output of this script
+# is affected by that re-take.
 #
 # summary.txt columns (1-based):
 #   1 NumberStatement          2 NumberMCI                   3 NumberRRI
@@ -31,17 +30,27 @@
 # Each stage isolates one optimization, so each figure compares the one column
 # that stage changes:
 #
-#   Figure 16  p_bar_ix_05/06/07.dat  TotalTimeAverage (c5) of all four stages, for
+#   (no figure)                 p_bar_ix_05/06/07.dat
+#                                     TotalTimeAverage (c5) of the three stages, for
 #                                     the policies of 3/6/9/12/15 statements
-#              rw_br_ai.dat           TotalTimeAverage (c5, BR) vs MCILabelsTimeAverage (c6, AI)
-#   Figure 17  p1_05/p6_br_ar/p1_07.dat, rw_p1.dat
+#                               rw_bar_ix.dat
+#                                     TotalTimeAverage (c5, Original) vs
+#                                     MCILabelsTimeAverage (c6, Incremental MCP)
+#
+#                               These five files fed the 20-round four-bar
+#                               "Optimization-Overview-Bars" rendering, which is no
+#                               longer shipped: the paper prints that figure from the
+#                               10-round data instead, as
+#                               "RQ7-Optimization-Overview-Bars-3Stage" (see
+#                               extract_optimization_pipeline_10rs.sh). The block below
+#                               still writes them, and they stay checked in, because
+#                               rw_bar_ix.dat needs the withheld real-world corpus and
+#                               can never be regenerated here.
+#   RQ8-ReducingPruning-Original-PruningReducer
+#                               p1_05/p1_06/p1_07.dat, rw_p1.dat
 #                                     RRIOperationsTimeAverage + RRIILPSolvingTimeAverage
-#                                     (c8+c9), BR vs AR - the reducer's set-cover cost
-#   Figure 18  p2_05/06/07.dat, rw_p2.dat
-#                                     MCIOperationsTimeAverage (c7), AR vs AM - the miner's
-#                                     node-computation cost
-#   Figure 19  p3_05/06/07.dat, rw_p3.dat
-#                                     MCILabelsTimeAverage (c6), AM vs AI - the EC cost
+#                                     (c8+c9), Original vs Pruning Reducer - the
+#                                     reducer's set-cover cost
 #
 # The Scalability_* files keep summary.txt row order and number the policies 1..15.
 # The RW files number the rows 0..505 and sort every column on its own value, ascending,
@@ -56,36 +65,35 @@
 # bound is 1e-2 ms, so a cell that the summaries print as 0.00 has no place on the
 # curve: gnuplot drops it and the line simply starts one point later. The pair files
 # below therefore render such a cell at the axis floor, 0.01, which is the smallest
-# value the axis can show. Only Figure 17 has cells of this kind, and today only on
-# the RW corpus: the policies that yield no finding at all, so the reducer is never
-# entered and neither side is timed, which leaves both sides at 0.00. The AR side of
-# a synthetic policy with a single finding used to print 0.00 the same way, the
-# reducer's shortcut having consumed no recordable time; since the AR folder was
-# re-taken on 2026-09-26 that shortcut is timed, so those cells are measurements now
+# value the axis can show. Only RQ8-ReducingPruning-Original-PruningReducer has cells of
+# this kind, and today only on the RW corpus: the policies that yield no finding at all, so
+# the reducer is never entered and neither side is timed, which leaves both sides at 0.00.
+# The Pruning Reducer side of a synthetic policy with a single finding used to print 0.00
+# the same way, the reducer's shortcut having consumed no recordable time; since that folder
+# was re-taken on 2026-09-26 that shortcut is timed, so those cells are measurements now
 # (0.02 for policy 1 of Scalability_05Keys) and no longer need the floor.
 
 set -e
 
-BR=results/accessrefinery_bdd_reducer_20rs
-AR=results/accessrefinery_bdd_reducer_AR_20rs
-AM=results/accessrefinery_bdd_reducer_AM_20rs
-AI=results/accessrefinery_bdd_reducer_AI_20rs
+ORIGINAL=results/accessrefinery_bdd_reducer_Original_20rs
+PRUNING_REDUCER=results/accessrefinery_bdd_reducer_PruningReducer_20rs
+INCREMENTAL_MCP=results/accessrefinery_bdd_reducer_IncrementalMCP_20rs
 
 OUT=paper_figures/archive_data_new
 mkdir -p "$OUT"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-# The real-world corpus is withheld for commercial reasons, so the four `rw_*`
-# outputs are produced only when the archives are present. Every other output on
-# this script's list is synthetic and regenerates unconditionally.
+# The real-world corpus is withheld for commercial reasons, so the `rw_*` outputs
+# are produced only when the archives are present. Every other output on this
+# script's list is synthetic and regenerates unconditionally.
 HAVE_RW=1
-for s in "$BR" "$AR" "$AM" "$AI"; do
+for s in "$ORIGINAL" "$PRUNING_REDUCER" "$INCREMENTAL_MCP"; do
     [ -f "$s/RW/summary.txt" ] || HAVE_RW=0
 done
 if [ "$HAVE_RW" = 0 ]; then
     echo "Note: the real-world corpus is not shipped (commercial reasons)."
-    echo "      Skipping rw_p1.dat, rw_p2.dat, rw_p3.dat, rw_br_ai.dat."
+    echo "      Skipping rw_p1.dat, rw_bar_ix.dat."
 fi
 
 # readcol <summary.txt> <spec> : one value per policy, in file order.
@@ -137,60 +145,39 @@ pair_sorted_each() {
     } > "$5"
 }
 
-# pair_sorted <summaryKey> <specKey> <summaryB> <specB> <out> : sorted by the key
-# column ascending, stable; column B comes from the same policy row.
-pair_sorted() {
-    rawcol "$1" "$2" > "$TMP/k"
-    readcol "$1" "$2" > "$TMP/a"
-    readcol "$3" "$4" > "$TMP/b"
-    { printf 'Policy\tA\tB\r\n'
-      paste -d'\t' "$TMP/k" "$TMP/a" "$TMP/b" \
-        | LC_ALL=C sort -s -g -k1,1 \
-        | awk -F'\t' "$FLOOR"' { printf "%d\t%s\t%s\r\n", NR-1, fl($2), fl($3) }'
-    } > "$5"
-}
-
-# --- Figure 17: BR vs AR, reducer (c8+c9) -------------------------------------
-pair_by_row "$BR/Scalability_05Keys/summary.txt" 8+9 "$AR/Scalability_05Keys/summary.txt" 8+9 "$OUT/p1_05.dat"
-pair_by_row "$BR/Scalability_06Keys/summary.txt" 8+9 "$AR/Scalability_06Keys/summary.txt" 8+9 "$OUT/p6_br_ar.dat"
-pair_by_row "$BR/Scalability_07Keys/summary.txt" 8+9 "$AR/Scalability_07Keys/summary.txt" 8+9 "$OUT/p1_07.dat"
+# --- RQ8-ReducingPruning-Original-PruningReducer: reducer (c8+c9) --------------
+pair_by_row "$ORIGINAL/Scalability_05Keys/summary.txt" 8+9 "$PRUNING_REDUCER/Scalability_05Keys/summary.txt" 8+9 "$OUT/p1_05.dat"
+pair_by_row "$ORIGINAL/Scalability_06Keys/summary.txt" 8+9 "$PRUNING_REDUCER/Scalability_06Keys/summary.txt" 8+9 "$OUT/p1_06.dat"
+pair_by_row "$ORIGINAL/Scalability_05Keys∗/summary.txt" 8+9 "$PRUNING_REDUCER/Scalability_05Keys∗/summary.txt" 8+9 "$OUT/p1_07.dat"
 if [ "$HAVE_RW" = 1 ]; then
-    pair_sorted_each "$BR/RW/summary.txt" 8+9 "$AR/RW/summary.txt" 8+9 "$OUT/rw_p1.dat"
+    pair_sorted_each "$ORIGINAL/RW/summary.txt" 8+9 "$PRUNING_REDUCER/RW/summary.txt" 8+9 "$OUT/rw_p1.dat"
 fi
 
-# --- Figure 18: AR vs AM, miner (c7) ------------------------------------------
-pair_by_row "$AR/Scalability_05Keys/summary.txt" 7 "$AM/Scalability_05Keys/summary.txt" 7 "$OUT/p2_05.dat"
-pair_by_row "$AR/Scalability_06Keys/summary.txt" 7 "$AM/Scalability_06Keys/summary.txt" 7 "$OUT/p2_06.dat"
-pair_by_row "$AR/Scalability_07Keys/summary.txt" 7 "$AM/Scalability_07Keys/summary.txt" 7 "$OUT/p2_07.dat"
-if [ "$HAVE_RW" = 1 ]; then
-    pair_sorted "$AR/RW/summary.txt" 7 "$AM/RW/summary.txt" 7 "$OUT/rw_p2.dat"
-fi
-
-# --- Figure 19: AM vs AI, EC engine (c6) --------------------------------------
-pair_by_row "$AM/Scalability_05Keys/summary.txt" 6 "$AI/Scalability_05Keys/summary.txt" 6 "$OUT/p3_05.dat"
-pair_by_row "$AM/Scalability_06Keys/summary.txt" 6 "$AI/Scalability_06Keys/summary.txt" 6 "$OUT/p3_06.dat"
-pair_by_row "$AM/Scalability_07Keys/summary.txt" 6 "$AI/Scalability_07Keys/summary.txt" 6 "$OUT/p3_07.dat"
-if [ "$HAVE_RW" = 1 ]; then
-    pair_sorted "$AM/RW/summary.txt" 6 "$AI/RW/summary.txt" 6 "$OUT/rw_p3.dat"
-fi
-
-# --- Figure 16: all four stages -----------------------------------------------
+# --- Total time of the three stages, c5 ----------------------------------------
+# Kept for the archive only: the figure these files fed, the 20-round
+# Optimization-Overview-Bars, is no longer shipped (see the header).
+# The 07 case holds the 5-Key* dataset, whose directory keeps that name.
 for k in 05 06 07; do
-    ds="Scalability_${k}Keys"
-    { printf 'idx\tBR\tAR\tAM\tAI\r\n'
-      paste -d'\t' <(readcol "$BR/$ds/summary.txt" 5) <(readcol "$AR/$ds/summary.txt" 5) \
-                   <(readcol "$AM/$ds/summary.txt" 5) <(readcol "$AI/$ds/summary.txt" 5) \
-        | awk 'NR==3||NR==6||NR==9||NR==12||NR==15 { printf "%d\t%s\t%s\t%s\t%s\r\n", n++, $1, $2, $3, $4 }'
+    case $k in
+        05) ds=Scalability_05Keys ;;
+        06) ds=Scalability_06Keys ;;
+        07) ds=Scalability_05Keys∗ ;;
+    esac
+    { printf 'idx\tOriginal\tPruningReducer\tIncrementalMCP\r\n'
+      paste -d'\t' <(readcol "$ORIGINAL/$ds/summary.txt" 5) \
+                   <(readcol "$PRUNING_REDUCER/$ds/summary.txt" 5) \
+                   <(readcol "$INCREMENTAL_MCP/$ds/summary.txt" 5) \
+        | awk 'NR==3||NR==6||NR==9||NR==12||NR==15 { printf "%d\t%s\t%s\t%s\r\n", n++, $1, $2, $3 }'
     } > "$OUT/p_bar_ix_$k.dat"
 done
 if [ "$HAVE_RW" = 1 ]; then
     {
-        printf 'Policy\tBR\tAI\r\n'
-        paste -d'\t' <(rawcol "$BR/RW/summary.txt" 5) <(readcol "$BR/RW/summary.txt" 5) \
-                     <(readcol "$AI/RW/summary.txt" 6) \
+        printf 'Policy\tOriginal\tIncrementalMCP\r\n'
+        paste -d'\t' <(rawcol "$ORIGINAL/RW/summary.txt" 5) <(readcol "$ORIGINAL/RW/summary.txt" 5) \
+                     <(readcol "$INCREMENTAL_MCP/RW/summary.txt" 6) \
           | LC_ALL=C sort -s -g -k1,1 \
           | awk -F'\t' '{ printf "%d\t%s\t%s\r\n", NR-1, $2, $3 }'
-    } > "$OUT/rw_br_ai.dat"
+    } > "$OUT/rw_bar_ix.dat"
 fi
 
 echo "Done extracting optimization-pipeline data into $OUT/"

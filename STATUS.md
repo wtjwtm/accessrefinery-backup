@@ -22,7 +22,7 @@ We believe this artifact satisfies the Functional criteria based on the followin
   - Source code of *AccessRefinery*
   - Source code of the reimplemented *Access Analyzer* (used as a baseline, since *AWS Access Analyzer* is not open source and only exposes a CLI interface)
   - Scripts for invoking *AWS Access Analyzer* via CLI
-  - Four synthetic datasets (`Scalability_05Keys/`, `Scalability_06Keys/`, `Scalability_07Keys/`, `Correctness/`)
+  - Four synthetic datasets (`Scalability_05Keys/`, `Scalability_06Keys/`, `Scalability_05Keys∗/`, `Correctness/`; the paper's `5-Key`, `6-Key`, `5-Key*` and correctness sets)
   - The real-world corpus (`RW/`, 506 policies) is **not public**, for commercial reasons: the raw real-world policies are not publicly available due to commercial restrictions
   - Reproduction and plotting scripts
 
